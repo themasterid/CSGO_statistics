@@ -13,7 +13,7 @@ from PyQt5.QtGui import QImage, QPixmap
 steamid = keys['steamid']
 key = keys['key']
 steamidkey = keys['steamidkey']
-knowncode = keys['knowncode']
+#knowncode = keys['knowncode']
 
 class MyWin(QtWidgets.QMainWindow):
     '''
