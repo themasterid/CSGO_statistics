@@ -4,7 +4,7 @@ import requests
 from datetime import datetime
 from PyQt5 import QtWidgets, QtCore
 from res.mainwindows import Ui_MainWindow
-from PyQt5.QtWidgets import QTableWidgetItem, QApplication, QWidget, QLabel
+from PyQt5.QtWidgets import QTableWidgetItem, QHeaderView, QWidget, QLabel
 from res.codes import keys
 from PyQt5.QtGui import QImage, QPixmap
 
@@ -628,6 +628,16 @@ class MyWin(QtWidgets.QMainWindow):
                 self.ui.tableWidget.setItem(row, col, cellinfo)
                 col += 1
             row += 1
+
+        #self.ui.tableWidget.sectionSizeFromContents(QHeaderView.logicalIndex)
+        #size = max(self.ui.tableWidget.sizeHintForColumn(0), 100)
+
+        #self.ui.tableWidget.horizontalHeader().resizeSection(0, size)
+        self.ui.tableWidget.horizontalHeader().setSectionResizeMode(
+            0, QHeaderView.Stretch)
+        
+        self.ui.tableWidget.resizeColumnsToContents()
+        self.ui.tableWidget.resizeRowsToContents()
         self.ui.tableWidget.setSortingEnabled(True)
 
     def open_json_file(self, r_request, path):
