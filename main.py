@@ -4,7 +4,7 @@ import requests
 from datetime import datetime
 from PyQt5 import QtWidgets, QtCore
 from res.mainwindows import Ui_MainWindow
-from PyQt5.QtWidgets import QTableWidgetItem, QApplication, QWidget, QLabel
+from PyQt5.QtWidgets import QTableWidgetItem
 from res.codes import keys
 from PyQt5.QtGui import QImage, QPixmap
 
