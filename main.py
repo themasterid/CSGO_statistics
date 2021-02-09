@@ -1,7 +1,7 @@
 import json
 import sys
 import requests
-from PyQt5 import QtWidgets, QtCore
+from PyQt5 import QtWidgets, QtCore, QtGui
 from res.mainwindows import Ui_MainWindow
 from PyQt5.QtWidgets import QTableWidgetItem
 from codes import keys
@@ -31,9 +31,32 @@ class MyWin(QtWidgets.QMainWindow):
         #url = f'https://api.steampowered.com/ICSGOPlayers_730/GetNextMatchSharingCode/v1?key={key}&steamid={steamid}&steamidkey={steamidkey}&knowncode={knowncode}'
         url = f'https://api.steampowered.com/ISteamUserStats/GetUserStatsForGame/v0002/?appid=730&key={key}&steamid={steamid}'
         r = requests.get(url).json()
-        fname = '/home/master/code/csgostats/res/csgo.json'
+        url_image = f'https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v2/?key={key}&steamids={steamid}'
+        r_image = requests.get(url_image).json()
+        fname_image = '/home/master/code/csgostats/res/csgo_image.json'        
+        data_image = self.open_json_file(r_image, fname_image)
         #self.write_json_file(r, fname)
+        fname = '/home/master/code/csgostats/res/csgo.json'
         data_csgo = self.open_json_file(r, fname)
+        # user online?
+        if data_image['response']['players'][0]['personastate'] == 1:
+            onlinestatus = "   (В сети)"
+        else:
+            onlinestatus = "   (Не в сети)"
+        
+        # put info in labels
+        self.ui.label_avatar.setPixmap(
+            QtGui.QPixmap('/home/master/code/csgostats/1.jpg'))
+        self.ui.label_personaname.setText(
+            data_image['response']['players'][0]['personaname'] + onlinestatus)
+        self.ui.label_realname.setText('Реальное имя: ' +
+            data_image['response']['players'][0]['realname'])
+        self.ui.label_profileurl.setText('Ссылка на профиль: ' +
+            data_image['response']['players'][0]['profileurl'])
+        if data_image['response']['players'][0]['loccountrycode'] == "KZ":            
+            self.ui.label_loccountrycode.setText('Страна: Казахстан')
+        else:
+            self.ui.label_loccountrycode.setText('Страна: Роисия')
 
         total_kills_ak47 = data_csgo['playerstats']['stats'][20]['value']
         total_shots_ak47 = data_csgo['playerstats']['stats'][56]['value']
