@@ -2,7 +2,7 @@ import json
 import sys
 import requests
 from datetime import datetime
-from PyQt5 import QtWidgets, QtCore
+from PyQt5 import QtWidgets, QtCore, QtGui, QtGui
 from res.mainwindows import Ui_MainWindow
 from PyQt5.QtWidgets import QTableWidgetItem, QHeaderView
 from res.codes import keys
@@ -264,12 +264,13 @@ class MyWin(QtWidgets.QMainWindow):
 
     def get_table_weapons(self, date_weapons):
         self.date_weapons = date_weapons
+        #if self.date_weapons == [('', '', '', '', '', '', '')]:
+        #    return
         self.ui.tableWidget_weapons.setColumnCount(len(self.date_weapons[0]))
         self.ui.tableWidget_weapons.setRowCount(len(self.date_weapons))
         self.ui.tableWidget_weapons.setHorizontalHeaderLabels(
             ('Оружие', 'Точность', 'Летальность',
-             'Убийства', 'Попадания', 'Выстрелы', '% от всех\nубийств')
-        )
+             'Убийства', 'Попадания', 'Выстрелы', '% от всех\nубийств'))
 
         rows_list = []
         for _ in range(len(self.date_weapons)):
@@ -408,12 +409,14 @@ class MyWin(QtWidgets.QMainWindow):
         self.get_info_profile(self.steamid)
         self.ui.textBrowser_info.setText(self.get_table_statistics(self.steamid))        
         self.date_weapons = self.get_info_weapons(self.steamid)
-        print(self.date_weapons)
         self.get_table_weapons(self.date_weapons)       
         return 
 
     def get_info_weapons(self, steamid):
         self.steamid = steamid
+        if self.check_profile(steamid) == 0:
+            date_weapons = [('', '', '', '', '', '', '')]
+            return date_weapons
         total_ksh_ak47 = [
             self.find_key_val('total_kills_ak47', self.steamid),
             self.find_key_val('total_shots_ak47', self.steamid),
@@ -839,6 +842,20 @@ class MyWin(QtWidgets.QMainWindow):
         return date_weapons
 
 # support functions
+
+    def check_profile(self, steamid):
+        self.steamid = steamid
+        url_profile_stat = f'https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v2/?key={key}&steamids={self.steamid}'
+
+        if requests.get(url_profile_stat).json()['response']['players'] == []:
+            self.statusBar().showMessage(f'ERR: 404 Not found!')
+            return 0
+
+        personastate = requests.get(url_profile_stat).json()['response']['players'][0]['personastate']
+        if personastate == 0:          
+            return 0
+        else:
+            return 1
 
     def click_avatar(self):
         webbrowser.open(self.ui.label_profileurl.text())
