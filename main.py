@@ -1,6 +1,7 @@
 import json
 import sys
 import requests
+import os
 from datetime import datetime
 from PyQt5 import QtWidgets, QtCore, QtGui, QtGui
 from res.mainwindows import Ui_MainWindow
@@ -9,6 +10,11 @@ from res.codes import keys
 from PyQt5.QtGui import QImage, QPixmap
 import webbrowser
 
+text_not_found = '''
+            Извините!\n
+            При обработке вашего запроса произошла ошибка:\n
+            Указанный профиль не найден.
+            '''
 
 steamid = keys['steamid']
 key = keys['key']
@@ -44,35 +50,63 @@ class MyWin(QtWidgets.QMainWindow):
         self.ui.label_rank.setPixmap(pixmap_rank)        
         self.ui.lineEdit_steamidfind.setInputMask("99999999999999999;XXXXXXXXXXXXXXXXX")
         self.ui.lineEdit_steamidfind.setText('Введите Steam ID')
+
         self.get_info_profile(self.steamid)
+        tmp_text_all = self.get_table_statistics(self.steamid)
+        self.ui.textBrowser_info.setText(tmp_text_all)
+
         self.ui.pushButton.clicked.connect(self.open_new_profile)
         self.ui.commandLinkButton_openurl.clicked.connect(self.click_avatar)
 
-        self.get_friend_list(self.steamid)
+        self.ui.pushButton_update_stat.clicked.connect(self.get_statistics)
+
+        self.ui.pushButton_update_weapons.clicked.connect(self.get_weapons)
+        self.ui.pushButton_update_friends.clicked.connect(self.get_friends)
+
+    def get_statistics(self):
+        self.steamid = self.steamid
+        self.get_info_profile(self.steamid)
         tmp_text_all = self.get_table_statistics(self.steamid)
         self.ui.textBrowser_info.setText(tmp_text_all)
+   
+    def get_weapons(self):
+        self.steamid = self.steamid
         date_weapons = self.get_info_weapons(self.steamid)
         self.get_table_weapons(date_weapons)
-        #self.get_friend_list(self.steamid)
-        #date_friends = self.get_friends_info(self.steamid)
-        #self.write_table_friends(date_friends)
+
+    def get_friends(self):
+        self.steamid = self.steamid
+        self.get_friend_list(self.steamid)
+        date_friends = self.get_friends_info(self.steamid)
+        self.get_tale_friends(date_friends)
 
     def get_info_profile(self, steamid):
         self.steamid = steamid
         url_profile_info = f'https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v2/?key={key}&steamids={self.steamid}'
         
         if requests.get(url_profile_info).json()['response']['players'] == []:
-            pixmap = QPixmap('ing/error.jpg')
+            pixmap = QPixmap('img/error.jpg')
             self.ui.label_avatar.setPixmap(pixmap)
             self.ui.label_rank.setPixmap(pixmap)
             self.ui.label_personaname.setText('Err: 404 Not Found!')
             self.ui.label_realname.setText('Err: 404 Not Found!')
             self.ui.label_profileurl.setText('https://steamcommunity.com/')
             self.ui.label_loccountrycode.setText('Err: 404 Not Found!')
-            return self.statusBar().showMessage(f'ERR: Not found!')
+            self.statusBar().showMessage(f'ERR: Not found!')
+            tmp_text_all = text_not_found
+            self.ui.textBrowser_info.setText(tmp_text_all)
+            return 0
+
+        directory = f"{self.steamid}"
+        parent_dir = "C:\\Users\\broot\\Documents\\GitHub\\csgostats\\date\\"
+        path = os.path.join(parent_dir, directory)
+        try:
+            os.mkdir(path)
+        except FileExistsError:
+            pass
 
         try:
-            open(f'date/{self.steamid}_profile_info.json', 'r')
+            open(f'date/{self.steamid}/{self.steamid}_profile_info.json', 'r')
         except FileNotFoundError:
             req_profile_info = requests.get(url_profile_info).json()            
             # add 
@@ -84,15 +118,15 @@ class MyWin(QtWidgets.QMainWindow):
             if req_profile_info['response']['players'][0]['communityvisibilitystate'] == 1:
                 self.statusBar().showMessage(
                     'The profile is not visible to you (Private, Friends Only, etc)')
-                steamid_profile_json = f'date/{self.steamid}_profile_info.json'
+                steamid_profile_json = f'date/{self.steamid}/{self.steamid}_profile_info.json'
                 profile_data_json = self.open_json_file(req_profile_info, steamid_profile_json)
             elif req_profile_info['response']['players'][0]['communityvisibilitystate'] == 3:
                 self.statusBar().showMessage(
                     'The profile is "Public", and the data is visible')
-                steamid_profile_json = f'date/{self.steamid}_profile_info.json'
+                steamid_profile_json = f'date/{self.steamid}/{self.steamid}_profile_info.json'
                 profile_data_json = self.open_json_file(req_profile_info, steamid_profile_json)
         
-        steamidprofile_json = f'date/{self.steamid}_profile_info.json'
+        steamidprofile_json = f'date/{self.steamid}/{self.steamid}_profile_info.json'
         profile_data_json = self.open_json_file(
             steamidprofile_json, steamidprofile_json)
         
@@ -143,16 +177,55 @@ class MyWin(QtWidgets.QMainWindow):
 
             self.ui.label_profileurl.setText(profile_data_json['response']['players'][0]['profileurl'])
             
-            try:
-                if profile_data_json['response']['players'][0]['loccountrycode'] == "KZ":
-                    self.ui.label_loccountrycode.setText('Страна: Казахстан')
-                elif profile_data_json['response']['players'][0]['loccountrycode'] == "RU":
-                    self.ui.label_loccountrycode.setText('Страна: Россия')
-                else:
-                    self.ui.label_loccountrycode.setText('Страна: Неизвестно')
-            except KeyError:
-                self.ui.label_loccountrycode.setText('---')
+            self.get_country_info(steamid)
+
             return profile_data_json
+
+    # STOP HERE!!! 12.02.2021
+    def get_country_info(self, steamid):
+        self.steamid = steamid
+        url_profile_info = f'https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v2/?key={key}&steamids={self.steamid}'
+        req_profile = requests.get(url_profile_info).json()
+        text_location = ''
+        try:
+            loccountrycode = req_profile['response']['players'][0]['loccountrycode']
+            location_all = f'https://steamcommunity.com/actions/QueryLocations/'
+            location_req = requests.get(location_all).json()            
+            for _ in location_req:
+                if _['countrycode'] == loccountrycode:
+                    text_location += _['countryname'] + ', '
+        except KeyError:
+            text_location += '---'
+            self.ui.label_loccountrycode.setText(text_location)
+            return text_location
+        
+        try:
+            locstatecode = req_profile['response']['players'][0]['locstatecode']
+            location_url = f'https://steamcommunity.com/actions/QueryLocations/{loccountrycode}/'
+            location_req = requests.get(location_url).json()
+            
+            for _ in location_req:
+                if _['statecode'] == locstatecode:
+                    text_location += _['statename'] + ', '
+        except KeyError:
+            text_location +=  '---'
+            self.ui.label_loccountrycode.setText(text_location)
+            return text_location
+
+        try:
+            loccityid = req_profile['response']['players'][0]['loccityid']
+            location_url = f'https://steamcommunity.com/actions/QueryLocations/{loccountrycode}/{locstatecode}'
+            location_req = requests.get(location_url).json()
+            for _ in location_req:
+                if _['cityid'] == loccityid:
+                    text_location += _['cityname']
+            self.ui.label_loccountrycode.setText(text_location)
+            return text_location
+        except KeyError:
+            print('Error, locstatecode')
+            text_location += '---'
+            self.ui.label_loccountrycode.setText(text_location)
+            return text_location
 
     def get_table_statistics(self, steamid):
         self.steamid = steamid
@@ -160,16 +233,11 @@ class MyWin(QtWidgets.QMainWindow):
         tmp_text_all = ''
 
         if requests.get(url_profile_stat).json()['response']['players'] == []:
-            tmp_text_all = '''
-            Извините!\n
-            При обработке вашего запроса произошла ошибка:\n
-            Указанный профиль не найден.
-            '''
+            tmp_text_all = text_not_found
             self.statusBar().showMessage(f'ERR: 404 Not found!')
             return tmp_text_all
-
         try:
-            open(f'date/{self.steamid}_profile_info.json', 'r')
+            open(f'date/{self.steamid}/{self.steamid}_profile_info.json', 'r')
         except FileNotFoundError:
             req_profile_info = requests.get(url_profile_stat).json()            
             #communityvisibilitystate
@@ -178,7 +246,7 @@ class MyWin(QtWidgets.QMainWindow):
             if req_profile_info['response']['players'][0]['communityvisibilitystate'] == 1:
                 self.statusBar().showMessage(
                     'The profile is not visible to you (Private, Friends Only, etc)')
-                steamid_profile_json = f'date/{self.steamid}_profile_info.json'
+                steamid_profile_json = f'date/{self.steamid}/{self.steamid}_profile_info.json'
                 profile_data_json = self.open_json_file(req_profile_info, steamid_profile_json)
                 tmp_text_all = '''
                 Пользователь скрыл информацию, \n
@@ -188,10 +256,10 @@ class MyWin(QtWidgets.QMainWindow):
             elif req_profile_info['response']['players'][0]['communityvisibilitystate'] == 3:
                 self.statusBar().showMessage(
                     'The profile is "Public", and the data is visible')
-                steamid_profile_json = f'date/{self.steamid}_profile_info.json'
+                steamid_profile_json = f'date/{self.steamid}/{self.steamid}_profile_info.json'
                 profile_data_json = self.open_json_file(req_profile_info, steamid_profile_json)
         
-        steamidprofile_json = f'date/{self.steamid}_profile_info.json'
+        steamidprofile_json = f'date/{self.steamid}/{self.steamid}_profile_info.json'
         profile_data_json = self.open_json_file(
             steamidprofile_json, steamidprofile_json)
         
@@ -250,22 +318,15 @@ class MyWin(QtWidgets.QMainWindow):
             tmp_text_all += 'Реальное имя - ' + str(profile_data_json['response']['players'][0]['realname']) + "\n"
         except KeyError:
             tmp_text_all += 'Реальное имя - ' + 'неизвестно' + "\n"
-        #tmp_text_all += 'primaryclanid - ' + str(profile_data_json['response']['players'][0]['primaryclanid']) + "\n"
         tmp_text_all += 'Дата создания профиля - ' + str(datetime.fromtimestamp(profile_data_json['response']['players'][0]['timecreated'])) + "\n"
-        #tmp_text_all += 'personastateflags - ' + str(profile_data_json['response']['players'][0]['personastateflags']) + "\n"
-        try:
-            tmp_text_all += 'Страна - ' + str(profile_data_json['response']['players'][0]['loccountrycode']) + "\n"
-        except KeyError:
-            tmp_text_all += 'Страна - ' + 'неизвестно' + "\n"
-        #tmp_text_all += 'locstatecode - ' + str(profile_data_json['response']['players'][0]['locstatecode']) + "\n"
-        #tmp_text_all += 'loccityid - ' + str(profile_data_json['response']['players'][0]['loccityid'])
+        tmp_text_all += 'Страна - ' + self.ui.label_loccountrycode.text() + "\n"
 
         return tmp_text_all
 
     def get_table_weapons(self, date_weapons):
         self.date_weapons = date_weapons
-        #if self.date_weapons == [('', '', '', '', '', '', '')]:
-        #    return
+        if self.date_weapons == [('', '', '', '', '', '', '')]:
+            return 
         self.ui.tableWidget_weapons.setColumnCount(len(self.date_weapons[0]))
         self.ui.tableWidget_weapons.setRowCount(len(self.date_weapons))
         self.ui.tableWidget_weapons.setHorizontalHeaderLabels(
@@ -299,8 +360,9 @@ class MyWin(QtWidgets.QMainWindow):
         self.ui.tableWidget_weapons.resizeColumnsToContents()
         self.ui.tableWidget_weapons.resizeRowsToContents()
         self.ui.tableWidget_weapons.setSortingEnabled(True)
+        return
 
-    def get_table_friends(self, date_friends):
+    def get_tale_friends(self, date_friends):
         self.date_friends = date_friends
         self.ui.tableWidget_friends.setColumnCount(len(self.date_friends[0]))
         self.ui.tableWidget_friends.setRowCount(len(self.date_friends))
@@ -344,24 +406,29 @@ class MyWin(QtWidgets.QMainWindow):
 
     def get_friends_info(self, steamid):
         self.steamid = steamid
+        url_profile_info = f'https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v2/?key={key}&steamids={self.steamid}'
+        if requests.get(url_profile_info).json()[
+            'response']['players'][0]['communityvisibilitystate'] == 1:
+            friend_info = [('', '', '', '', '', '', '')]
+            return friend_info
         friend_info = []
-        open_file_friends_steamid = f'date/{self.steamid}_all_friend_list.json'
+        open_file_friends_steamid = f'date/{self.steamid}/{self.steamid}_all_friend_list.json'
         friend_steamid = self.open_json_file(
             open_file_friends_steamid, open_file_friends_steamid)
         for i in range(len(friend_steamid['friendslist']['friends'])):
             steam_id_friend = friend_steamid['friendslist']['friends'][i]['steamid']
             url_friend_info = f'https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v2/?key={key}&steamids={steam_id_friend}'
             try:
-                f = open(f'date/{steam_id_friend}.json', 'r', encoding='utf-8')
+                f = open(f'date/{self.steamid}/{steam_id_friend}.json', 'r', encoding='utf-8')
             except FileNotFoundError:
                 req_friends = requests.get(url_friend_info).json()
-                friend_name_json = 'date/' + \
+                friend_name_json = f'date/{self.steamid}/' + \
                     req_friends['response']['players'][0]['steamid'] + ".json"
                 friend = self.open_json_file(req_friends, friend_name_json)
                 friend_info.append(str(i + 1) + ") " +
                                 friend['response']['players'][0]['personaname'])
 
-            friend_name_json = 'date/' + steam_id_friend + ".json"
+            friend_name_json = f'date/{self.steamid}/' + steam_id_friend + ".json"
             friend = self.open_json_file(friend_name_json, friend_name_json)
             friend_info.append(
                 [friend['response']['players'][0]['personaname'], '', '', '', '', '', ''])
@@ -371,16 +438,16 @@ class MyWin(QtWidgets.QMainWindow):
         friend_list = []
         self.steamid = steamid
         try:
-            open(f'date/{self.steamid}_all_friend_list.json', 'r')
+            open(f'date/{self.steamid}/{self.steamid}_all_friend_list.json', 'r')
         except FileNotFoundError:
             url_friends_list = f'https://api.steampowered.com/ISteamUser/GetFriendList/v1/?key={key}&steamid={self.steamid}'
             req_friends_list = requests.get(url_friends_list).json()
-            steamid_file_json = f'date/{self.steamid}_all_friend_list.json'
+            steamid_file_json = f'date/{self.steamid}/{self.steamid}_all_friend_list.json'
             friend_list = self.open_json_file(
                 req_friends_list, steamid_file_json)
             return friend_list
 
-        steamid_file_json = f'date/{self.steamid}_all_friend_list.json'
+        steamid_file_json = f'date/{self.steamid}/{self.steamid}_all_friend_list.json'
         friend_list = self.open_json_file(
             steamid_file_json, steamid_file_json)
         
@@ -392,6 +459,7 @@ class MyWin(QtWidgets.QMainWindow):
 
     def open_new_profile(self):
         self.steamid = self.ui.lineEdit_steamidfind.text()
+        steamid = self.steamid
         try:
             int(self.steamid)
         except:
@@ -399,22 +467,24 @@ class MyWin(QtWidgets.QMainWindow):
                 'Not INT')
             return
         
-        #if self.steamid == '' or len(self.steamid) < 17 or len(self.steamid) > 17 or isinstance(self.steamid, int):
-        #    #self.statusBar().showMessage(f'ERR: Status code = 500, Приватный профиль')
-            #self.steamid = '76561198084621617'
-        #    return
         self.ui.label_realname.setText('')
         self.ui.label_profileurl.setText('')
         self.ui.label_loccountrycode.setText('')
+        if self.get_info_profile(self.steamid) == 0:
+            return
         self.get_info_profile(self.steamid)
+        #self.get_statistics
         self.ui.textBrowser_info.setText(self.get_table_statistics(self.steamid))        
-        self.date_weapons = self.get_info_weapons(self.steamid)
-        self.get_table_weapons(self.date_weapons)       
-        return 
+        #self.date_weapons = self.get_info_weapons(self.steamid)
+        #self.get_table_weapons(self.date_weapons) 
+        steamid = self.steamid      
+        return self.steamid
 
     def get_info_weapons(self, steamid):
         self.steamid = steamid
-        if self.check_profile(steamid) == 0:
+        url_profile_info = f'https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v2/?key={key}&steamids={self.steamid}'
+        if requests.get(url_profile_info).json()[
+            'response']['players'][0]['communityvisibilitystate'] == 1:
             date_weapons = [('', '', '', '', '', '', '')]
             return date_weapons
         total_ksh_ak47 = [
@@ -883,7 +953,7 @@ class MyWin(QtWidgets.QMainWindow):
     def find_key_val(self, finded, steamid):
         self.steamid = steamid
         self.url_all_statistic = f'https://api.steampowered.com/ISteamUserStats/GetUserStatsForGame/v0002/?appid=730&key={key}&steamid={self.steamid}'
-        self.get_statistic_json = f'date/{self.steamid}_all_statistic.json'
+        self.get_statistic_json = f'date/{self.steamid}/{self.steamid}_all_statistic.json'
         self.finded = finded
         try:
             open(self.get_statistic_json, 'r', encoding='utf-8')
