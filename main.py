@@ -48,10 +48,282 @@ class MyWin(QtWidgets.QMainWindow):
 
         self.ui.pushButton.clicked.connect(self.open_new_profile)
         self.ui.commandLinkButton_openurl.clicked.connect(self.click_avatar)
+        match_date_list = self.get_matches()
+        self.ui.comboBox_matces.addItems(match_date_list)
+        self.ui.comboBox_matces.currentIndexChanged.connect(self.get_info_match)
 
         self.ui.pushButton_update_stat.clicked.connect(self.get_statistics)
         self.ui.pushButton_update_weapons.clicked.connect(self.get_weapons)
         self.ui.pushButton_update_friends.clicked.connect(self.get_friends)
+
+    def get_profile_test(self, steamid):
+        self.steamid = steamid
+        url_profile_info = f'https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v2/?key={key}&steamids={self.steamid}'
+        directory = f"{self.steamid}"
+        parent_dir = "C:\\Users\\broot\\Documents\\GitHub\\csgostats\\date\\"
+        path = os.path.join(parent_dir, directory)
+        try:
+            os.mkdir(path)
+        except FileExistsError:
+            pass
+
+        try:
+            open(f'date/{self.steamid}/{self.steamid}_profile_info.json', 'r')
+        except FileNotFoundError:
+            req_profile_info = requests.get(url_profile_info).json()                        
+            #  communityvisibilitystate
+            #  1 - the profile is not visible to you (Private, Friends Only, etc),
+            #  3 - the profile is "Public", and the data is visible.
+            if req_profile_info['response']['players'][0]['communityvisibilitystate'] == 1:
+                self.statusBar().showMessage(
+                    'The profile is not visible to you (Private, Friends Only, etc)')
+                steamid_profile_json = f'date/{self.steamid}/{self.steamid}_profile_info.json'
+                profile_data_json = self.open_json_file(req_profile_info, steamid_profile_json)
+                return profile_data_json
+            elif req_profile_info['response']['players'][0]['communityvisibilitystate'] == 3:
+                self.statusBar().showMessage(
+                    'The profile is "Public", and the data is visible')
+                steamid_profile_json = f'date/{self.steamid}/{self.steamid}_profile_info.json'
+                profile_data_json = self.open_json_file(req_profile_info, steamid_profile_json)
+                return profile_data_json
+
+        if os.path.exists(f'date/{self.steamid}/{self.steamid}_profile_info.json'):
+            steamidprofile_json = f'date/{self.steamid}/{self.steamid}_profile_info.json'           
+            profile_data_json = self.open_json_file('', steamidprofile_json)
+            return profile_data_json 
+        else:
+            req_profile_info = requests.get(url_profile_info).json()
+            steamidprofile_json = f'date/{self.steamid}/{self.steamid}_profile_info.json'
+            profile_data_json = self.open_json_file(req_profile_info, steamidprofile_json)
+            return profile_data_json
+
+    def get_info_match(self):
+        file_p = 'all_stats/76561198084621617/all_stats_.json'
+        self.date_match = self.open_json_file(file_p, file_p)
+        index = self.ui.comboBox_matces.currentIndex()
+
+        competitive = 'Карта ' + self.date_match[str(index)]['Competitive']
+        date = 'Дата ' + self.date_match[str(index)]['date']
+        waittime = 'Время ожидания ' + self.date_match[str(index)]['WaitTime']
+        matchduration = 'Время игры ' + self.date_match[str(index)]['MatchDuration']
+        score = 'Счет ' + self.date_match[str(index)]['Team' + str(index)][0]['score']
+        
+        if self.date_match[str(index)]['Competitive'] == 'de_engage':
+            pixmap = QPixmap('all_stats/76561198084621617/Match_files/de_engage.jpg')
+            self.ui.label_image_map.setPixmap(pixmap)
+        else:
+            pixmap = QPixmap('all_stats/76561198084621617/Match_files/mymaps_de_inferno_thumb.jpg')
+            self.ui.label_image_map.setPixmap(pixmap)
+
+        self.steamid1 = self.date_match[str(index)]['Team' + str(index)][1]['steamid64']
+        name1 = self.get_profile_test(self.steamid1)['response']['players'][0]['personaname']
+
+        self.steamid2 = self.date_match[str(index)]['Team' + str(index)][2]['steamid64']
+        name2 = self.get_profile_test(self.steamid2)['response']['players'][0]['personaname']
+        
+        self.steamid3 = self.date_match[str(index)]['Team' + str(index)][3]['steamid64']
+        name3 = self.get_profile_test(self.steamid3)['response']['players'][0]['personaname']
+        
+        self.steamid4 = self.date_match[str(index)]['Team' + str(index)][4]['steamid64']
+        name4 = self.get_profile_test(self.steamid4)['response']['players'][0]['personaname']
+        
+        self.steamid5 = self.date_match[str(index)]['Team' + str(index)][5]['steamid64']
+        name5 = self.get_profile_test(self.steamid5)['response']['players'][0]['personaname']
+        
+        self.steamid6 = self.date_match[str(index)]['Team' + str(index)][6]['steamid64']
+        name6 = self.get_profile_test(self.steamid6)['response']['players'][0]['personaname']
+        
+        self.steamid7 = self.date_match[str(index)]['Team' + str(index)][7]['steamid64']
+        name7 = self.get_profile_test(self.steamid7)['response']['players'][0]['personaname']
+        
+        self.steamid8 = self.date_match[str(index)]['Team' + str(index)][8]['steamid64']
+        name8 = self.get_profile_test(self.steamid8)['response']['players'][0]['personaname']
+        
+        self.steamid9 = self.date_match[str(index)]['Team' + str(index)][9]['steamid64']
+        name9 = self.get_profile_test(self.steamid9)['response']['players'][0]['personaname']
+        
+        self.steamid10 = self.date_match[str(index)]['Team' + str(index)][10]['steamid64']
+        name10 = self.get_profile_test(self.steamid10)['response']['players'][0]['personaname']
+
+        player_name1 = self.date_match[str(index)]['Team' + str(index)][1]['PlayerName']
+        player_name2 = self.date_match[str(index)]['Team' + str(index)][2]['PlayerName']
+        player_name3 = self.date_match[str(index)]['Team' + str(index)][3]['PlayerName']
+        player_name4 = self.date_match[str(index)]['Team' + str(index)][4]['PlayerName']
+        player_name5 = self.date_match[str(index)]['Team' + str(index)][5]['PlayerName']
+        player_name6 = self.date_match[str(index)]['Team' + str(index)][6]['PlayerName']
+        player_name7 = self.date_match[str(index)]['Team' + str(index)][7]['PlayerName']
+        player_name8 = self.date_match[str(index)]['Team' + str(index)][8]['PlayerName']
+        player_name9 = self.date_match[str(index)]['Team' + str(index)][9]['PlayerName']
+        player_name10 = self.date_match[str(index)]['Team' + str(index)][10]['PlayerName']
+
+        self.ui.label_competitive.setText(competitive)
+        self.ui.label_date.setText(date)
+        self.ui.label_waittime.setText(waittime)
+        self.ui.label_matchduration.setText(matchduration)
+        self.ui.label_score.setText(score)
+
+        image1 = QImage()
+        image1.loadFromData(requests.get(self.get_profile_test(self.steamid1)['response']['players'][0]['avatar']).content)
+        self.ui.label_playername1_avatar.setPixmap(QPixmap(image1))
+        
+        image2 = QImage()
+        image2.loadFromData(requests.get(self.get_profile_test(self.steamid2)['response']['players'][0]['avatar']).content)
+        self.ui.label_playername2_avatar.setPixmap(QPixmap(image2))
+        
+        image3 = QImage()
+        image3.loadFromData(requests.get(self.get_profile_test(self.steamid3)['response']['players'][0]['avatar']).content)
+        self.ui.label_playername3_avatar.setPixmap(QPixmap(image3))
+        
+        image4 = QImage()
+        image4.loadFromData(requests.get(self.get_profile_test(self.steamid4)['response']['players'][0]['avatar']).content)
+        self.ui.label_playername4_avatar.setPixmap(QPixmap(image4))
+        
+        image5 = QImage()
+        image5.loadFromData(requests.get(self.get_profile_test(self.steamid5)['response']['players'][0]['avatar']).content)
+        self.ui.label_playername5_avatar.setPixmap(QPixmap(image5))
+        
+        image6 = QImage()
+        image6.loadFromData(requests.get(self.get_profile_test(self.steamid6)['response']['players'][0]['avatar']).content)
+        self.ui.label_playername6_avatar.setPixmap(QPixmap(image6))
+        
+        image7 = QImage()
+        image7.loadFromData(requests.get(self.get_profile_test(self.steamid7)['response']['players'][0]['avatar']).content)
+        self.ui.label_playername7_avatar.setPixmap(QPixmap(image7))
+        
+        image8 = QImage()
+        image8.loadFromData(requests.get(self.get_profile_test(self.steamid8)['response']['players'][0]['avatar']).content)
+        self.ui.label_playername8_avatar.setPixmap(QPixmap(image8))
+        
+        image9 = QImage()
+        image9.loadFromData(requests.get(self.get_profile_test(self.steamid9)['response']['players'][0]['avatar']).content)
+        self.ui.label_playername9_avatar.setPixmap(QPixmap(image9))
+        
+        image10 = QImage()
+        image10.loadFromData(requests.get(self.get_profile_test(self.steamid10)['response']['players'][0]['avatar']).content)
+        self.ui.label_playername10_avatar.setPixmap(QPixmap(image10))
+
+        #self.ui.label_playername1_avatar.setPixmap(QPixmap(self.date_match[str(index)]['Team' + str(index)][1]['avatar']))
+        #self.ui.label_playername2_avatar.setPixmap(QPixmap(self.date_match[str(index)]['Team' + str(index)][2]['avatar']))
+        #self.ui.label_playername3_avatar.setPixmap(QPixmap(self.date_match[str(index)]['Team' + str(index)][3]['avatar']))
+        #self.ui.label_playername4_avatar.setPixmap(QPixmap(self.date_match[str(index)]['Team' + str(index)][4]['avatar']))
+        #self.ui.label_playername5_avatar.setPixmap(QPixmap(self.date_match[str(index)]['Team' + str(index)][5]['avatar']))
+        #self.ui.label_playername6_avatar.setPixmap(QPixmap(self.date_match[str(index)]['Team' + str(index)][6]['avatar']))
+        #self.ui.label_playername7_avatar.setPixmap(QPixmap(self.date_match[str(index)]['Team' + str(index)][7]['avatar']))
+        #self.ui.label_playername8_avatar.setPixmap(QPixmap(self.date_match[str(index)]['Team' + str(index)][8]['avatar']))
+        #self.ui.label_playername9_avatar.setPixmap(QPixmap(self.date_match[str(index)]['Team' + str(index)][9]['avatar']))
+        #self.ui.label_playername10_avatar.setPixmap(QPixmap(self.date_match[str(index)]['Team' + str(index)][10]['avatar']))
+
+        #self.ui.label_playername1.setToolTip('<img src="https://cdn.cloudflare.steamstatic.com/steamcommunity/public/images/avatars/09/093a719aa08d7404f4e567c0521ee3ab5513054f_full.jpg">')
+
+        self.ui.label_playername1.setText(name1)
+        self.ui.label_playername2.setText(name2)
+        self.ui.label_playername3.setText(name3)
+        self.ui.label_playername4.setText(name4)
+        self.ui.label_playername5.setText(name5)
+        self.ui.label_playername6.setText(name6)
+        self.ui.label_playername7.setText(name7)
+        self.ui.label_playername8.setText(name8)
+        self.ui.label_playername9.setText(name9)
+        self.ui.label_playername10.setText(name10)
+
+        #self.ui.label_playername1.setText(player_name2[0])
+        #self.ui.label_playername2.setText(player_name2[0])
+        #self.ui.label_playername3.setText(player_name3[0])
+        #self.ui.label_playername4.setText(player_name4[0])
+        #self.ui.label_playername5.setText(player_name5[0])
+        #self.ui.label_playername6.setText(player_name6[0])
+        #self.ui.label_playername7.setText(player_name7[0])
+        #self.ui.label_playername8.setText(player_name8[0])
+        #self.ui.label_playername9.setText(player_name9[0])
+        #self.ui.label_playername10.setText(player_name10[0])
+
+        self.ui.label_pping1.setText(player_name1[1])
+        self.ui.label_pping2.setText(player_name2[1])
+        self.ui.label_pping3.setText(player_name3[1])
+        self.ui.label_pping4.setText(player_name4[1])
+        self.ui.label_pping5.setText(player_name5[1])
+        self.ui.label_pping6.setText(player_name6[1])
+        self.ui.label_pping7.setText(player_name7[1])
+        self.ui.label_pping8.setText(player_name8[1])
+        self.ui.label_pping9.setText(player_name9[1])
+        self.ui.label_pping10.setText(player_name10[1])
+
+        self.ui.label_kk1.setText(player_name1[2])
+        self.ui.label_kk2.setText(player_name2[2])
+        self.ui.label_kk3.setText(player_name3[2])
+        self.ui.label_kk4.setText(player_name4[2])
+        self.ui.label_kk5.setText(player_name5[2])
+        self.ui.label_kk6.setText(player_name6[2])
+        self.ui.label_kk7.setText(player_name7[2])
+        self.ui.label_kk8.setText(player_name8[2])
+        self.ui.label_kk9.setText(player_name9[2])
+        self.ui.label_kk10.setText(player_name10[2])
+
+        self.ui.label_aa1.setText(player_name1[3])
+        self.ui.label_aa2.setText(player_name2[3])
+        self.ui.label_aa3.setText(player_name3[3])
+        self.ui.label_aa4.setText(player_name4[3])
+        self.ui.label_aa5.setText(player_name5[3])
+        self.ui.label_aa6.setText(player_name6[3])
+        self.ui.label_aa7.setText(player_name7[3])
+        self.ui.label_aa8.setText(player_name8[3])
+        self.ui.label_aa9.setText(player_name9[3])
+        self.ui.label_aa10.setText(player_name10[3])
+
+        self.ui.label_dd1.setText(player_name1[4])
+        self.ui.label_dd2.setText(player_name2[4])
+        self.ui.label_dd3.setText(player_name3[4])
+        self.ui.label_dd4.setText(player_name4[4])
+        self.ui.label_dd5.setText(player_name5[4])
+        self.ui.label_dd6.setText(player_name6[4])
+        self.ui.label_dd7.setText(player_name7[4])
+        self.ui.label_dd8.setText(player_name8[4])
+        self.ui.label_dd9.setText(player_name9[4])
+        self.ui.label_dd10.setText(player_name10[4])
+
+        self.ui.label_mmvp1.setText(player_name1[5])
+        self.ui.label_mmvp2.setText(player_name2[5])
+        self.ui.label_mmvp3.setText(player_name3[5])
+        self.ui.label_mmvp4.setText(player_name4[5])
+        self.ui.label_mmvp5.setText(player_name5[5])
+        self.ui.label_mmvp6.setText(player_name6[5])
+        self.ui.label_mmvp7.setText(player_name7[5])
+        self.ui.label_mmvp8.setText(player_name8[5])
+        self.ui.label_mmvp9.setText(player_name9[5])
+        self.ui.label_mmvp10.setText(player_name10[5])
+
+        self.ui.label_hhsp1.setText(player_name1[6])
+        self.ui.label_hhsp2.setText(player_name2[6])
+        self.ui.label_hhsp3.setText(player_name3[6])
+        self.ui.label_hhsp4.setText(player_name4[6])
+        self.ui.label_hhsp5.setText(player_name5[6])
+        self.ui.label_hhsp6.setText(player_name6[6])
+        self.ui.label_hhsp7.setText(player_name7[6])
+        self.ui.label_hhsp8.setText(player_name8[6])
+        self.ui.label_hhsp9.setText(player_name9[6])
+        self.ui.label_hhsp10.setText(player_name10[6])
+
+        self.ui.label_sscore1.setText(player_name1[7])
+        self.ui.label_sscore2.setText(player_name2[7])
+        self.ui.label_sscore3.setText(player_name3[7])
+        self.ui.label_sscore4.setText(player_name4[7])
+        self.ui.label_sscore5.setText(player_name5[7])
+        self.ui.label_sscore6.setText(player_name6[7])
+        self.ui.label_sscore7.setText(player_name7[7])
+        self.ui.label_sscore8.setText(player_name8[7])
+        self.ui.label_sscore9.setText(player_name9[7])
+        self.ui.label_sscore10.setText(player_name10[7])
+
+        return
+
+
+    def get_matches(self):
+        file_p = 'all_stats/76561198084621617/all_stats_.json'
+        match_date = self.open_json_file(file_p, file_p)
+        match_dates = []
+        for _ in range(len(match_date)):
+            match_dates.append(match_date[str(_)]['date'])
+        return match_dates
 
     def get_statistics(self):
         self.steamid = self.steamid
