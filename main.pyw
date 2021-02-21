@@ -1376,7 +1376,6 @@ class MyWin(QtWidgets.QMainWindow):
         self.dir_path = dir_path
         self.steamid = steamid
         self.directory = f"{self.steamid}"
-        #self.parent_dir = f"C:\\Users\\broot\\Documents\\GitHub\\csgostats\\date\\{self.dir_path}\\"
         self.parent_dir = f"date\\{self.dir_path}\\"
         self.path = os.path.join(self.parent_dir, self.directory)
         try:
