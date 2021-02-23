@@ -54,12 +54,11 @@ class MyWin(QtWidgets.QMainWindow):
         self.get_info_profile(self.steamid)
         self.ui.textBrowser_info.setText(self.get_table_statistics(self.steamid))
 
-        #self.ui.pushButton_update_bans_start.clicked.connect(self.get_table_bans)
         self.ui.pushButton_update_bans_start.clicked.connect(self.on_start)
         self.ui.pushButton_update_bans_stop.clicked.connect(self.on_stop)
-        self.check_vac_thread.mysignal.connect(self.get_table_bans, QtCore.Qt.QueuedConnection)
-        self.check_vac_thread.mysignal_1.connect(self.on_change_1, QtCore.Qt.QueuedConnection)
-        self.check_vac_thread.mysignal_2.connect(self.on_change_2, QtCore.Qt.QueuedConnection)
+        self.check_vac_thread.list_all_users.connect(self.get_table_bans, QtCore.Qt.QueuedConnection)
+        self.check_vac_thread.message_toolbar_bans.connect(self.on_change_check_vac, QtCore.Qt.QueuedConnection)
+        
         #self.ui.pushButton_update_matches.clicked.connect(self.update_users_names)
 
         self.ui.pushButton_my_profile.clicked.connect(self.open_my_profile)
@@ -83,8 +82,16 @@ class MyWin(QtWidgets.QMainWindow):
         self.ui.tableWidget_bans.itemClicked.connect(self.listwidgetclicked)
 
     def open_my_profile(self):
-        self.steamid = '76561198084621617'
+        self.ui.tabWidget.setTabEnabled(1, True)
+        self.ui.tabWidget.setTabEnabled(2, True)
+        self.ui.tabWidget.setTabEnabled(3, True)
+        self.ui.tabWidget.setTabEnabled(4, True)
+        self.ui.pushButton_update_stat.setEnabled(True)
+        self.pixmap_rank = QPixmap('img/ranks/skillgroup1.png')
+        self.ui.label_rank.setPixmap(self.pixmap_rank)
+        self.steamid = steamid
         self.get_info_profile(self.steamid)
+        self.ui.textBrowser_info.setText(self.get_table_statistics(self.steamid))
         return
 
     def listwidgetclicked(self, item):
@@ -780,7 +787,6 @@ class MyWin(QtWidgets.QMainWindow):
             self.friend_info = [('', '', '', '', '', '', '')]
             return self.friend_info  
         
-
         #self.friend_steamid = self.open_json_file(self.all_friend_list_json)
         
         for i in range(len(self.friend_steamid['friendslist']['friends'])):
@@ -834,7 +840,6 @@ class MyWin(QtWidgets.QMainWindow):
         self.ui.tableWidget_friends.resizeColumnsToContents()
         self.ui.tableWidget_friends.resizeRowsToContents()
         self.ui.tableWidget_friends.setSortingEnabled(True)
-        
         return
 
     def open_new_profile(self):
@@ -1304,6 +1309,11 @@ class MyWin(QtWidgets.QMainWindow):
             self.statusBar().showMessage(f'ERR: Profile Not Found!')
             tmp_text_all = text_not_found
             self.ui.textBrowser_info.setText(tmp_text_all)
+            self.ui.tabWidget.setTabEnabled(1, False)
+            self.ui.tabWidget.setTabEnabled(2, False)
+            self.ui.tabWidget.setTabEnabled(3, False)
+            self.ui.tabWidget.setTabEnabled(4, False)
+            self.ui.pushButton_update_stat.setEnabled(False)
             return 0
 
     def click_avatar(self):
@@ -1357,7 +1367,7 @@ class MyWin(QtWidgets.QMainWindow):
     def on_stop(self):
         self.check_vac_thread.running = False
 
-    def on_change_1(self, s):
+    def on_change_check_vac(self, s):
         self.statusBar().showMessage(f'{s}')
 
     def on_change_2(self, ss):
@@ -1371,44 +1381,39 @@ class MyWin(QtWidgets.QMainWindow):
 
 
 class CheckVacThread(QtCore.QThread, MyWin):
-    mysignal = QtCore.pyqtSignal(list)
-    mysignal_1 = QtCore.pyqtSignal(str)
-    mysignal_2 = QtCore.pyqtSignal(str)
+    list_all_users = QtCore.pyqtSignal(list)
+    message_toolbar_bans = QtCore.pyqtSignal(str)
 
     def __init__(self, parent=None):        
         QtCore.QThread.__init__(self, parent)
         self.running = False
         self.count = 0
-
-    def run(self):
         self.today = date.today()
         self.today_date = self.today.strftime("%b-%d-%Y")
+
+    def run(self):
         self.running = True        
-        file_all_users = 'all_stats/all_stats.json'
-        self.date_match_users = self.open_json_file(file_all_users)
+        self.file_all_users = 'all_stats/all_stats.json'
+        self.date_match_users = self.open_json_file(self.file_all_users)
         self.vac_banned_status = []
-        all_users = []
+        self.all_users = []
         for _ in range(len(self.date_match_users)):
             for i in range(10):
                 self.vac_banned_status.append(self.date_match_users[str(_)]['Team' + str(_)][i + 1]['steamid64'])
 
         for line in self.vac_banned_status:
-            if line not in all_users:
-                all_users.append(line)
+            if line not in self.all_users:
+                self.all_users.append(line)
 
         self.vac_banned_status = []
-        tmp_all_users = []
+        self.tmp_all_users = []
         self.tmp_steamid = ""
         name = ''
-        for _ in range(len(all_users)):
-            #self.mysignal_2.emit('Строка ' + str(_))
-            self.vac_banned_status.append(self.check_vac_banned(all_users[_]))
-            #self.mysignal.emit(self.check_vac_banned(all_users[self.count]), len(all_users))            
-            #print(user, self.vac_banned_status[user]['players'][0]['SteamId'], len(self.vac_banned_status))
-            self.tmp_steamid = all_users[_]
-            #print(self.tmp_steamid)
+        for _ in range(len(self.all_users)):
+            self.vac_banned_status.append(self.check_vac_banned(self.all_users[_]))
+            self.tmp_steamid = self.all_users[_]
             name = self.open_json_file(f"date/{self.tmp_steamid}/{self.tmp_steamid}_profile_info_{self.today_date}.json")['response']['players'][0]['personaname']
-            tmp_all_users.append(
+            self.tmp_all_users.append(
                 [
                     self.tmp_steamid,
                     name,
@@ -1419,20 +1424,19 @@ class CheckVacThread(QtCore.QThread, MyWin):
                     str(self.vac_banned_status[_]['players'][0]["NumberOfGameBans"]) if self.vac_banned_status[_]['players'][0]["NumberOfGameBans"] else "",
                     "" if self.vac_banned_status[_]['players'][0]["EconomyBan"] == "none" else "  +  "
             ])
-        self.mysignal.emit(tmp_all_users)
-
-
+        
+        self.list_all_users.emit(self.tmp_all_users)
 
     def check_vac_banned(self, steamid):
-        self.today = date.today()
-        self.today_date = self.today.strftime("%b-%d-%Y")
         self.steamid = steamid
         self.file_bans_users = f'date/{self.steamid}/{self.steamid}_ban_status_{self.today_date}.json'
         self.url_steam_bans = f'https://api.steampowered.com/ISteamUser/GetPlayerBans/v1/?key={key}&steamids={self.steamid}'       
         self.directory = f"{self.steamid}"
         self.parent_dir = f'date\\{self.steamid}'
         self.path = os.path.join(self.parent_dir, self.directory)
-        self.get_profile_test(self.steamid)
+
+        self.get_profile_status(self.steamid)
+        
         try:
             os.mkdir(self.path)
         except FileExistsError:
@@ -1441,16 +1445,50 @@ class CheckVacThread(QtCore.QThread, MyWin):
         try:
             open(f'date/{self.steamid}/{self.steamid}_ban_status_{self.today_date}.json', 'r')
         except FileNotFoundError:
-            #print('Создаю на диске', self.steamid, self.today_date)
-            self.mysignal_1.emit('Создаю на диске ' + f'date/{self.steamid}/{self.steamid}_ban_status_{self.today_date}.json')
+            self.message_toolbar_bans.emit('Создаю на диске ' + f'date/{self.steamid}/{self.steamid}_ban_status_{self.today_date}.json')
             self.request_bans = requests.get(self.url_steam_bans).json()
-            self.date_bans_users = self.write_json_file(self.request_bans, self.file_bans_users)
-            return self.date_bans_users
+            self.write_json_file(self.request_bans, self.file_bans_users)
+            return self.open_json_file(self.file_bans_users)
 
-        #print('Открываю с диска', self.steamid, self.today_date)
-        self.mysignal_1.emit('Открываю с диска ' + f'date/{self.steamid}/{self.steamid}_ban_status_{self.today_date}.json')
-        self.date_bans_users = self.open_json_file(self.file_bans_users)
-        return self.date_bans_users
+        self.message_toolbar_bans.emit('Открываю с диска ' + f'date/{self.steamid}/{self.steamid}_ban_status_{self.today_date}.json')
+        return self.open_json_file(self.file_bans_users)
+
+    def get_profile_status(self, steamid):
+        self.steamid = steamid
+        self.steamid_profile_json = f'date/{self.steamid}/{self.steamid}_profile_info_{self.today_date}.json'
+        self.url_profile_info = f'https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v2/?key={key}&steamids={self.steamid}'
+        self.directory = f"{self.steamid}"
+        self.parent_dir = "date\\"
+        self.path = os.path.join(self.parent_dir, self.directory)        
+        try:
+            os.mkdir(self.path)
+        except FileExistsError:
+            pass
+
+        try:
+            open(f'date/{self.steamid}/{self.steamid}_profile_info_{self.today_date}.json', 'r')
+        except FileNotFoundError:
+            #self.statusBar().showMessage('1. Файл не на диске, Качаю с сервера Valve! Записываю на диск.')
+            #print(f'Файл date/{self.steamid}/{self.steamid}_profile_info_{self.today_date}.json не на диске, Качаю с сервера Valve! Записываю на диск.')
+            self.req_profile_info = requests.get(self.url_profile_info).json()
+            self.write_json_file(self.req_profile_info, self.steamid_profile_json)                     
+            #  communityvisibilitystate
+            #  1 - the profile is not visible to you (Private, Friends Only, etc),
+            #  3 - the profile is "Public", and the data is visible.
+            if self.req_profile_info['response']['players'] == []:
+                self.write_json_file('deleted', f'date/deleted_/{self.steamid}_deleted_profile_info_{self.today_date}.json') 
+                return 0
+            if self.req_profile_info['response']['players'][0]['communityvisibilitystate'] == 1:
+                self.write_json_file(self.req_profile_info, self.steamid_profile_json)
+                return self.open_json_file(self.steamid_profile_json)
+            elif self.req_profile_info['response']['players'][0]['communityvisibilitystate'] == 3:
+                self.write_json_file(self.req_profile_info, self.steamid_profile_json)
+                return self.open_json_file(self.steamid_profile_json)
+        
+        if os.path.exists(f'date/{self.steamid}/{self.steamid}_profile_info_{self.today_date}.json'):
+            #print(f'Файл date/{self.steamid}/{self.steamid}_profile_info_{self.today_date}.json на диске, пропускаю! Считываю c диска.')            
+            #self.statusBar().showMessage('Файл на диске, пропускаю! Считываю c диска.')       
+            return self.open_json_file(self.steamid_profile_json) 
 
 if __name__ == "__main__":
     app = QtWidgets.QApplication(sys.argv)
