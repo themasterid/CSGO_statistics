@@ -49,37 +49,50 @@ class MyWin(QtWidgets.QMainWindow):
         self.ui.label_rank.setPixmap(self.pixmap_rank)
         self.ui.lineEdit_steamidfind.setInputMask("99999999999999999;XXXXXXXXXXXXXXXXX")
         self.ui.lineEdit_steamidfind.setText('Введите Steam ID')
-        self.check_vac_thread = CheckVacThread()
-
-        self.get_info_profile(self.steamid)
-        self.ui.textBrowser_info.setText(self.get_table_statistics(self.steamid))
-
-        self.ui.pushButton_update_bans_start.clicked.connect(self.on_start)
-        self.ui.pushButton_update_bans_stop.clicked.connect(self.on_stop)
-        self.check_vac_thread.list_all_users.connect(self.get_table_bans, QtCore.Qt.QueuedConnection)
-        self.check_vac_thread.message_toolbar_bans.connect(self.on_change_check_vac, QtCore.Qt.QueuedConnection)
         
-        #self.ui.pushButton_update_matches.clicked.connect(self.update_users_names)
+        self.check_vac_thread = CheckVacThread()
+        self.check_friends_thread = CheckFriendsThread()
+        self.check_weapons_thread = CheckWeaponsThread()
 
+        self.ui.commandLinkButton_openurl.clicked.connect(self.click_avatar)
+        self.ui.pushButton.clicked.connect(self.open_new_profile)
         self.ui.pushButton_my_profile.clicked.connect(self.open_my_profile)
 
-        self.ui.pushButton.clicked.connect(self.open_new_profile)
-        self.ui.commandLinkButton_openurl.clicked.connect(self.click_avatar)
-        
-        self.ui.comboBox_matces.addItems(self.get_items_combobox_matches()) # заполняю даты матчей в список
-        self.ui.comboBox_bans.addItems(self.get_items_combobox_bans())
-        self.ui.comboBox_weapons.addItems(self.get_items_combobox_weapons())
-        self.ui.comboBox_friends.addItems(self.get_items_combobox_friends())
-
-        self.ui.comboBox_bans.activated.connect(self.open_table_bans)
-        self.ui.comboBox_matces.activated.connect(self.get_info_match)
-        self.ui.comboBox_weapons.activated.connect(self.get_table_weapons)
-        self.ui.comboBox_friends.activated.connect(self.get_table_friends)
-
+        # STATS
+        self.get_info_profile(self.steamid)
         self.ui.pushButton_update_stat.clicked.connect(self.get_statistics)
-        self.ui.pushButton_update_weapons.clicked.connect(self.get_weapons)
-        self.ui.pushButton_update_friends.clicked.connect(self.get_friends)
-        self.ui.tableWidget_bans.itemClicked.connect(self.listwidgetclicked)
+        self.ui.textBrowser_info.setText(self.get_table_statistics(self.steamid))
+
+        # WEAPONS
+        self.ui.pushButton_update_weapons.clicked.connect(self.on_start_weapons)
+        #self.ui.pushButton_update_weapons.clicked.connect(self.on_stop_weapons)
+        self.ui.comboBox_weapons.activated.connect(self.open_table_weapons)
+        self.ui.comboBox_weapons.addItems(self.get_items_combobox_weapons())
+        self.check_weapons_thread.list_all_weapons.connect(self.get_table_weapons, QtCore.Qt.QueuedConnection)
+        # self.check_friends_thread.message_toolbar_friends.connect(self.on_change_check_friends, QtCore.Qt.QueuedConnection)
+
+        # FRIENDS
+        self.ui.pushButton_update_friends.clicked.connect(self.on_start_friends)
+        #self.ui.pushButton_update_friends.clicked.connect(self.on_stop_friends)
+        self.ui.comboBox_friends.activated.connect(self.open_table_friends)
+        self.ui.comboBox_friends.addItems(self.get_items_combobox_friends())
+        self.check_friends_thread.list_all_friends.connect(self.get_table_friends, QtCore.Qt.QueuedConnection)
+        # self.check_friends_thread.message_toolbar_friends.connect(self.on_change_check_friends, QtCore.Qt.QueuedConnection)
+
+        # MATCHES
+        #self.ui.pushButton_update_matches.clicked.connect(self.update_users_names)
+        self.ui.comboBox_matces.addItems(self.get_items_combobox_matches()) # заполняю даты матчей в список
+        self.ui.comboBox_matces.activated.connect(self.get_info_match)
+
+        # BANS
+        self.ui.pushButton_update_bans_start.clicked.connect(self.on_start_vacs)
+        self.ui.pushButton_update_bans_stop.clicked.connect(self.on_stop_vacs)
+        self.ui.comboBox_bans.activated.connect(self.open_table_bans)
+        self.ui.comboBox_bans.addItems(self.get_items_combobox_bans())
+        self.check_vac_thread.list_all_users.connect(self.get_table_bans, QtCore.Qt.QueuedConnection)
+        self.check_vac_thread.message_toolbar_bans.connect(self.on_change_check_vac, QtCore.Qt.QueuedConnection)
+        self.ui.tableWidget_bans.itemClicked.connect(self.listwidgetclicked) # добавить проверку по строкам
+        
 
     def open_my_profile(self):
         self.ui.tabWidget.setTabEnabled(1, True)
@@ -129,6 +142,106 @@ class MyWin(QtWidgets.QMainWindow):
             self.ban_list_files.append(self.files_i.split('.')[0])
         return self.ban_list_files
 
+    def open_table_weapons(self):
+        self.index_weapons = self.ui.comboBox_weapons.currentIndex()
+        self.ui.tableWidget_weapons.clear()
+        self.date_weapons = self.open_json_file(f'date/all_weapons/76561198084621617/{self.weapons_list_files[self.index_weapons]}.json')
+        self.ui.tableWidget_weapons.setColumnCount(len(self.date_weapons[0]))
+        self.ui.tableWidget_weapons.setRowCount(len(self.date_weapons))
+        self.ui.tableWidget_weapons.setHorizontalHeaderLabels(
+            ('Оружие', 'Точность', 'Летальность',
+             'Убийства', 'Попадания', 'Выстрелы', '% от всех\nубийств'))
+
+        rows_list = []
+        for _ in range(len(self.date_weapons)):
+            rows_list.append(str(_ + 1))
+        self.ui.tableWidget_weapons.setVerticalHeaderLabels(rows_list)
+
+        row = 0
+        for tup in self.date_weapons:
+            col = 0
+            for item in tup:
+                cellinfo = QTableWidgetItem(item)
+                cellinfo.setFlags(
+                    QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled
+                )
+                self.ui.tableWidget_weapons.setItem(row, col, cellinfo)
+                col += 1
+            row += 1
+
+        self.ui.tableWidget_weapons.horizontalHeader().setSectionResizeMode(
+            0, QHeaderView.Stretch)
+
+        self.ui.tableWidget_weapons.resizeColumnsToContents()
+        self.ui.tableWidget_weapons.resizeRowsToContents()
+        self.ui.tableWidget_weapons.setSortingEnabled(True)
+        return
+
+    def open_table_friends(self):
+        self.index_friends = self.ui.comboBox_friends.currentIndex()
+        self.ui.tableWidget_friends.clear()
+        self.friend_info = self.open_json_file(f'date/all_friends/76561198084621617/{self.friends_list_files[self.index_friends]}.json')
+        self.ui.tableWidget_friends.setColumnCount(len(self.friend_info[0])) # 7
+        self.ui.tableWidget_friends.setRowCount(len(self.friend_info)) # 37
+        self.ui.tableWidget_friends.setGridStyle(3)
+        self.ui.tableWidget_friends.setHorizontalHeaderLabels(
+            ('Игрок', '█████', '█████', '█████', '█████', '█████', '█████')
+            )
+        
+        # add index rows 1,2,3,4...
+        rows_list = []
+        for _ in range(len(self.friend_info)):
+            rows_list.append(str(_ + 1))
+        self.ui.tableWidget_friends.setVerticalHeaderLabels(rows_list)
+        
+        row = 0
+        for tup in self.friend_info:            
+            col = 0
+            for item in tup:
+                cellinfo = QTableWidgetItem(item)
+                cellinfo.setFlags(
+                    QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled
+                )
+                self.ui.tableWidget_friends.setItem(row, col, cellinfo)
+                col += 1
+            row += 1
+
+        self.ui.tableWidget_friends.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
+        self.ui.tableWidget_friends.resizeColumnsToContents()
+        self.ui.tableWidget_friends.resizeRowsToContents()
+        self.ui.tableWidget_friends.setSortingEnabled(True)
+        return
+
+    def get_table_bans(self, list_vacs):
+        self.today = date.today()
+        self.today_date = self.today.strftime("%b-%d-%Y")        
+        # {'players': [{'SteamId': '76561198131788828', 'CommunityBanned': False, 'VACBanned': False, 'NumberOfVACBans': 0, 'DaysSinceLastBan': 0, 'NumberOfGameBans': 0, 'EconomyBan': 'none'}]}
+
+        with open(f'date/all_bans/76561198084621617/{self.today_date}.json', 'w', encoding='utf-8') as self.file_all_bans:
+            json.dump(list_vacs, self.file_all_bans, ensure_ascii=False, indent=4)
+            self.file_all_bans.close()
+        return
+
+    def get_table_weapons(self, list_weapons):
+        self.today = date.today()
+        self.today_date = self.today.strftime("%b-%d-%Y")        
+        # {'players': [{'SteamId': '76561198131788828', 'CommunityBanned': False, 'VACBanned': False, 'NumberOfVACBans': 0, 'DaysSinceLastBan': 0, 'NumberOfGameBans': 0, 'EconomyBan': 'none'}]}
+
+        with open(f'date/all_weapons/76561198084621617/{self.today_date}.json', 'w', encoding='utf-8') as self.file_all_bans:
+            json.dump(list_weapons, self.file_all_bans, ensure_ascii=False, indent=4)
+            self.file_all_bans.close()
+        return
+
+    def get_table_friends(self, list_friends):
+        self.today = date.today()
+        self.today_date = self.today.strftime("%b-%d-%Y")        
+        # {'players': [{'SteamId': '76561198131788828', 'CommunityBanned': False, 'VACBanned': False, 'NumberOfVACBans': 0, 'DaysSinceLastBan': 0, 'NumberOfGameBans': 0, 'EconomyBan': 'none'}]}
+
+        with open(f'date/all_friends/76561198084621617/{self.today_date}.json', 'w', encoding='utf-8') as self.file_all_bans:
+            json.dump(list_friends, self.file_all_bans, ensure_ascii=False, indent=4)
+            self.file_all_bans.close()
+        return
+
     def open_table_bans(self):
         self.index = self.ui.comboBox_bans.currentIndex()
         self.ui.tableWidget_bans.clear()
@@ -158,16 +271,6 @@ class MyWin(QtWidgets.QMainWindow):
         self.ui.tableWidget_bans.resizeColumnsToContents()
         self.ui.tableWidget_bans.resizeRowsToContents()
         self.ui.tableWidget_bans.setSortingEnabled(True)
-        return
-
-    def get_table_bans(self, dict_vacs):
-        self.today = date.today()
-        self.today_date = self.today.strftime("%b-%d-%Y")        
-        # {'players': [{'SteamId': '76561198131788828', 'CommunityBanned': False, 'VACBanned': False, 'NumberOfVACBans': 0, 'DaysSinceLastBan': 0, 'NumberOfGameBans': 0, 'EconomyBan': 'none'}]}
-
-        with open(f'date/all_bans/76561198084621617/{self.today_date}.json', 'w', encoding='utf-8') as self.file_all_bans:
-            json.dump(dict_vacs, self.file_all_bans, ensure_ascii=False, indent=4)
-            self.file_all_bans.close()
         return
 
     def update_users_names(self):
@@ -392,15 +495,6 @@ class MyWin(QtWidgets.QMainWindow):
         tmp_text_all = self.get_table_statistics(self.steamid)
         self.ui.textBrowser_info.setText(tmp_text_all)
    
-    def get_weapons(self):
-        self.steamid = self.steamid
-        self.date_weapons = self.get_info_weapons(self.steamid)
-        self.get_table_weapons(self.date_weapons)
-
-    def get_friends(self):
-        self.steamid = self.steamid
-        self.get_table_friends()
-
     def get_info_profile(self, steamid):        
         self.today = date.today()
         self.today_date = self.today.strftime("%b-%d-%Y")
@@ -704,144 +798,6 @@ class MyWin(QtWidgets.QMainWindow):
 
         return self.tmp_text_all
 
-    def get_table_weapons(self, date_weapons):
-        self.index_weapons = self.ui.comboBox_weapons.currentIndex()
-        self.ui.tableWidget_weapons.clear()
-        self.date_weapons = self.open_json_file(f'date/all_weapons/76561198084621617/{self.weapons_list_files[self.index_weapons]}.json')
-        self.ui.tableWidget_weapons.setColumnCount(len(self.date_weapons[0]))
-        self.ui.tableWidget_weapons.setRowCount(len(self.date_weapons))
-        self.ui.tableWidget_weapons.setHorizontalHeaderLabels(
-            ('Оружие', 'Точность', 'Летальность',
-             'Убийства', 'Попадания', 'Выстрелы', '% от всех\nубийств'))
-
-        # Перенести в отдельный поток
-        '''
-        self.date_weapons = date_weapons
-        if self.date_weapons == [('', '', '', '', '', '', '')]:
-            return 
-        today = date.today()
-        today_date = today.strftime("%b-%d-%Y")
-        with open(f'date/all_weapons/{self.steamid}/{today_date}.json', 'w', encoding='utf-8') as self.file_all_weapons:
-            json.dump(self.date_weapons, self.file_all_weapons, ensure_ascii=False, indent=4)
-            self.file_all_weapons.close()        
-        onlyfiles = [f for f in listdir(f'date/{self.dir_path}/{self.steamid}/') if isfile(join(f'date/{self.dir_path}/{self.steamid}/', f))]
-        weapons_list = []
-        for files_i in onlyfiles:
-            weapons_list.append(files_i.split('.')[0])     
-        self.ui.comboBox_weapons.addItems(weapons_list)
-
-        '''
-        # Перенести в отдельный поток
-
-        rows_list = []
-        for _ in range(len(self.date_weapons)):
-            rows_list.append(str(_ + 1))
-        self.ui.tableWidget_weapons.setVerticalHeaderLabels(rows_list)
-
-        row = 0
-        for tup in self.date_weapons:
-            col = 0
-            for item in tup:
-                cellinfo = QTableWidgetItem(item)
-                cellinfo.setFlags(
-                    QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled
-                )
-                self.ui.tableWidget_weapons.setItem(row, col, cellinfo)
-                col += 1
-            row += 1
-
-        self.ui.tableWidget_weapons.horizontalHeader().setSectionResizeMode(
-            0, QHeaderView.Stretch)
-
-        self.ui.tableWidget_weapons.resizeColumnsToContents()
-        self.ui.tableWidget_weapons.resizeRowsToContents()
-        self.ui.tableWidget_weapons.setSortingEnabled(True)
-        return
-
-    def get_table_friends(self):
-        self.index_friends = self.ui.comboBox_friends.currentIndex()
-        self.ui.tableWidget_friends.clear()
-        self.friend_info = self.open_json_file(f'date/all_friends/76561198084621617/{self.friends_list_files[self.index_friends]}.json')
-        self.ui.tableWidget_friends.setColumnCount(len(self.friend_info[0])) # 7
-        self.ui.tableWidget_friends.setRowCount(len(self.friend_info)) # 37
-        self.ui.tableWidget_friends.setGridStyle(3)
-        self.ui.tableWidget_friends.setHorizontalHeaderLabels(
-            ('Игрок', '█████', '█████', '█████', '█████', '█████', '█████')
-            )
-        
-        # Перенести в отдельный поток
-        '''
-        self.today = date.today()
-        self.today_date = self.today.strftime("%b-%d-%Y")
-        self.url_friends_list = f'https://api.steampowered.com/ISteamUser/GetFriendList/v1/?key={key}&steamid={self.steamid}'
-        self.all_friend_list_json = f'date/{self.steamid}/{self.steamid}_all_friend_list_{self.today_date}.json'
-        self.steamid = steamid
-        self.friend_info = []
-        try:
-            open(f'date/{self.steamid}/{self.steamid}_all_friend_list_{self.today_date}.json', 'r')
-        except FileNotFoundError:            
-            self.req_friends_list = requests.get(self.url_friends_list).json()
-            self.write_json_file(self.req_friends_list, self.all_friend_list_json)
-
-        if self.get_profile_test(self.steamid) == 0:
-            self.friend_info = [('', '', '', '', '', '', '')]
-            return self.friend_info  
-        
-        #self.friend_steamid = self.open_json_file(self.all_friend_list_json)
-        
-        for i in range(len(self.friend_steamid['friendslist']['friends'])):
-            self.steam_id_friend = self.friend_steamid['friendslist']['friends'][i]['steamid']
-            self.url_friend_info = f'https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v2/?key={key}&steamids={self.steam_id_friend}'
-            try:
-                f = open(f'date/{self.steamid}/{self.steam_id_friend}.json', 'r', encoding='utf-8')
-            except FileNotFoundError:
-                self.req_friends = requests.get(self.url_friend_info).json()
-                self.friend_steamid_json = f"date/{self.steamid}/{self.req_friends['response']['players'][0]['steamid']}.json"
-                self.write_json_file(self.req_friends, self.friend_steamid_json)
-                friend = self.open_json_file(self.friend_steamid_json)
-                self.friend_info.append([friend['response']['players'][0]['personaname'], '█████', '█████', '█████', '█████', '█████', '█████'])
-                continue
-
-            self.friend_steamid_json = f'date/{self.steamid}/{self.steam_id_friend}.json'
-            self.friend = self.open_json_file(self.friend_steamid_json)
-            self.friend_info.append([self.friend['response']['players'][0]['personaname'], '█████', '█████', '█████', '█████', '█████', '█████'])
-
-        # LIST comboBox_friends
-        #with open(f'date/all_friends/{self.steamid}/{self.today_date}.json', 'w', encoding='utf-8') as self.file_all_friends:
-        #    json.dump(self.friend_info, self.file_all_friends, ensure_ascii=False, indent=4)
-        #    self.file_all_friends.close()
-        #onlyfiles = [f for f in listdir(f'date/{self.dir_path}/{self.steamid}/') if isfile(join(f'date/{self.dir_path}/{self.steamid}/', f))]
-        #self.friend_list = []
-        #for self.files_i in onlyfiles:
-        #    self.friend_list.append(self.files_i.split('.')[0])     
-        #self.ui.comboBox_friends.addItems(self.friend_list)
-        '''
-        # Перенести в отдельный поток
-
-        # add index rows 1,2,3,4...
-        rows_list = []
-        for _ in range(len(self.friend_info)):
-            rows_list.append(str(_ + 1))
-        self.ui.tableWidget_friends.setVerticalHeaderLabels(rows_list)
-        
-        row = 0
-        for tup in self.friend_info:            
-            col = 0
-            for item in tup:
-                cellinfo = QTableWidgetItem(item)
-                cellinfo.setFlags(
-                    QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled
-                )
-                self.ui.tableWidget_friends.setItem(row, col, cellinfo)
-                col += 1
-            row += 1
-
-        self.ui.tableWidget_friends.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
-        self.ui.tableWidget_friends.resizeColumnsToContents()
-        self.ui.tableWidget_friends.resizeRowsToContents()
-        self.ui.tableWidget_friends.setSortingEnabled(True)
-        return
-
     def open_new_profile(self):
         self.steamid = self.ui.lineEdit_steamidfind.text()
         try:
@@ -862,6 +818,115 @@ class MyWin(QtWidgets.QMainWindow):
         #self.date_weapons = self.get_info_weapons(self.steamid)
         #self.get_table_weapons(self.date_weapons) 
         return self.steamid
+
+    def check_profile(self, steamid):
+        self.steamid = steamid
+        self.url_profile_info = f'https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v2/?key={key}&steamids={self.steamid}'
+        
+        if requests.get(self.url_profile_info).json()['response']['players'] == []:
+            pixmap = QPixmap('img/error.jpg')
+            self.ui.label_avatar.setPixmap(pixmap)
+            self.ui.label_rank.setPixmap(pixmap)
+            self.ui.label_personaname.setText('██████████')
+            self.ui.label_realname.setText('██████████')
+            self.ui.label_profileurl.setText('https://steamcommunity.com/')
+            self.ui.label_loccountrycode.setText('██████████')
+            self.statusBar().showMessage(f'ERR: Profile Not Found!')
+            tmp_text_all = text_not_found
+            self.ui.textBrowser_info.setText(tmp_text_all)
+            self.ui.tabWidget.setTabEnabled(1, False)
+            self.ui.tabWidget.setTabEnabled(2, False)
+            self.ui.tabWidget.setTabEnabled(3, False)
+            self.ui.tabWidget.setTabEnabled(4, False)
+            self.ui.pushButton_update_stat.setEnabled(False)
+            return 0
+
+    def click_avatar(self):
+        webbrowser.open(self.ui.label_profileurl.text())
+
+    def write_json_file(self, date_to_write, fname):
+        self.date_to_write = date_to_write
+        self.fname = fname
+        with open(self.fname, 'w', encoding='utf-8') as self.write_json_file_:
+            json.dump(self.date_to_write, self.write_json_file_,
+                      ensure_ascii=False, indent=4)
+            self.write_json_file_.close()
+        return self.date_to_write
+
+    def open_json_file(self, fname):
+        self.fname = fname
+        try:
+            open(self.fname, 'r', encoding='utf-8')
+        except FileNotFoundError:
+            print('ERR: file not found:', fname)
+        with open(self.fname, 'r', encoding='utf-8') as self.read_json_file:
+            self.data_json = json.load(self.read_json_file)
+            self.read_json_file.close()
+        return self.data_json
+
+    # WEAPONS
+    def on_start_weapons(self):
+        if not self.check_weapons_thread.isRunning():
+            self.check_weapons_thread.start()
+
+    def on_stop_weapons(self):
+        self.check_weapons_thread.running = False
+
+    def on_change_check_weapons(self, weapons_info):
+        self.statusBar().showMessage(f'{weapons_info}')
+
+    # FRIENDS
+    def on_start_friends(self):
+        if not self.check_friends_thread.isRunning():
+            self.check_friends_thread.start()
+
+    def on_stop_friends(self):
+        self.check_friends_thread.running = False
+
+    def on_change_check_friends(self, friends_info):
+        self.statusBar().showMessage(f'{friends_info}')
+
+    # VACS
+    def on_start_vacs(self):
+        if not self.check_vac_thread.isRunning():
+            self.check_vac_thread.start()
+
+    def on_stop_vacs(self):
+        self.check_vac_thread.running = False
+
+    def on_change_check_vac(self, vac_info):
+        self.statusBar().showMessage(f'{vac_info}')
+
+    def on_change_vac_rows(self, info_strings):
+        print(info_strings)
+
+    def closeEvent(self, event):
+        self.hide()
+        self.check_vac_thread.running = False
+        self.check_vac_thread.wait(5000)
+        event.accept()
+
+class CheckWeaponsThread(QtCore.QThread, MyWin):
+    list_all_weapons = QtCore.pyqtSignal(list)
+
+    def __init__(self, parent=None):        
+        QtCore.QThread.__init__(self, parent)
+        self.running = False
+        self.today = date.today()
+        self.today_date = self.today.strftime("%b-%d-%Y")
+
+    def run(self):        
+        self.steamid = steamid
+        self.weapons_info = self.get_info_weapons(self.steamid)
+        if self.weapons_info == [('', '', '', '', '', '', '')]:
+            return 
+        today = date.today()
+        today_date = today.strftime("%b-%d-%Y")
+        with open(f'date/all_weapons/{self.steamid}/{today_date}.json', 'w', encoding='utf-8') as self.file_all_weapons:
+            json.dump(self.weapons_info, self.file_all_weapons, ensure_ascii=False, indent=4)
+            self.file_all_weapons.close()        
+        
+        self.list_all_weapons.emit(self.weapons_info)
 
     def get_info_weapons(self, steamid):
         self.steamid = steamid
@@ -1292,57 +1357,11 @@ class MyWin(QtWidgets.QMainWindow):
              str(total_ksh_xm1014[2]),
              str(total_ksh_xm1014[1]),
              str(round(total_ksh_xm1014[0] / total_summ * 100, 2)) + "%")]
-        return self.date_weapons
-
-    def check_profile(self, steamid):
-        self.steamid = steamid
-        self.url_profile_info = f'https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v2/?key={key}&steamids={self.steamid}'
-        
-        if requests.get(self.url_profile_info).json()['response']['players'] == []:
-            pixmap = QPixmap('img/error.jpg')
-            self.ui.label_avatar.setPixmap(pixmap)
-            self.ui.label_rank.setPixmap(pixmap)
-            self.ui.label_personaname.setText('██████████')
-            self.ui.label_realname.setText('██████████')
-            self.ui.label_profileurl.setText('https://steamcommunity.com/')
-            self.ui.label_loccountrycode.setText('██████████')
-            self.statusBar().showMessage(f'ERR: Profile Not Found!')
-            tmp_text_all = text_not_found
-            self.ui.textBrowser_info.setText(tmp_text_all)
-            self.ui.tabWidget.setTabEnabled(1, False)
-            self.ui.tabWidget.setTabEnabled(2, False)
-            self.ui.tabWidget.setTabEnabled(3, False)
-            self.ui.tabWidget.setTabEnabled(4, False)
-            self.ui.pushButton_update_stat.setEnabled(False)
-            return 0
-
-    def click_avatar(self):
-        webbrowser.open(self.ui.label_profileurl.text())
-
-    def write_json_file(self, date_to_write, fname):
-        self.date_to_write = date_to_write
-        self.fname = fname
-        with open(self.fname, 'w', encoding='utf-8') as self.write_json_file_:
-            json.dump(self.date_to_write, self.write_json_file_,
-                      ensure_ascii=False, indent=4)
-            self.write_json_file_.close()
-        return self.date_to_write
-
-    def open_json_file(self, fname):
-        self.fname = fname
-        try:
-            open(self.fname, 'r', encoding='utf-8')
-        except FileNotFoundError:
-            print('ERR: file not found:', fname)
-        with open(self.fname, 'r', encoding='utf-8') as self.read_json_file:
-            self.data_json = json.load(self.read_json_file)
-            self.read_json_file.close()
-        return self.data_json
+        return self.date_weapons    
 
     def find_key_by_value(self, finded, steamid):
         self.today = date.today()        
         self.today_date = self.today.strftime("%b-%d-%Y")
-        # _{self.today_date}
         self.steamid = steamid
         self.url_all_statistic = f'https://api.steampowered.com/ISteamUserStats/GetUserStatsForGame/v0002/?appid=730&key={key}&steamid={self.steamid}'
         self.get_statistic_json = f'date/{self.steamid}/{self.steamid}_all_statistic_{self.today_date}.json'
@@ -1360,25 +1379,53 @@ class MyWin(QtWidgets.QMainWindow):
                 self.finded_val = _['value']
         return self.finded_val
 
-    def on_start(self):
-        if not self.check_vac_thread.isRunning():
-            self.check_vac_thread.start()
+class CheckFriendsThread(QtCore.QThread, MyWin):
+    list_all_friends = QtCore.pyqtSignal(list)
 
-    def on_stop(self):
-        self.check_vac_thread.running = False
+    def __init__(self, parent=None):        
+        QtCore.QThread.__init__(self, parent)
+        self.running = False
+        self.today = date.today()
+        self.today_date = self.today.strftime("%b-%d-%Y")
 
-    def on_change_check_vac(self, s):
-        self.statusBar().showMessage(f'{s}')
+    def run(self):
+        self.running = True        
+        self.file_all_users = 'all_stats/all_stats.json'
+        self.date_match_users = self.open_json_file(self.file_all_users)
+        self.steamid = steamid
+        self.url_friends_list = f'https://api.steampowered.com/ISteamUser/GetFriendList/v1/?key={key}&steamid={self.steamid}'
+        self.all_friend_list_json = f'date/{self.steamid}/{self.steamid}_all_friend_list_{self.today_date}.json'
+        self.friend_info = []
+        try:
+            open(f'date/{self.steamid}/{self.steamid}_all_friend_list_{self.today_date}.json', 'r')
+        except FileNotFoundError:            
+            self.req_friends_list = requests.get(self.url_friends_list).json()
+            self.write_json_file(self.req_friends_list, self.all_friend_list_json)
 
-    def on_change_2(self, ss):
-        print(ss)
+        if self.get_profile_test(self.steamid) == 0:
+            self.friend_info = [('', '', '', '', '', '', '')]
+            return self.friend_info  
+        
+        self.friend_steamid = self.open_json_file(self.all_friend_list_json)
+        
+        for i in range(len(self.friend_steamid['friendslist']['friends'])):
+            self.steam_id_friend = self.friend_steamid['friendslist']['friends'][i]['steamid']
+            self.url_friend_info = f'https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v2/?key={key}&steamids={self.steam_id_friend}'
+            try:
+                f = open(f'date/{self.steamid}/{self.steam_id_friend}.json', 'r', encoding='utf-8')
+            except FileNotFoundError:
+                self.req_friends = requests.get(self.url_friend_info).json()
+                self.friend_steamid_json = f"date/{self.steamid}/{self.req_friends['response']['players'][0]['steamid']}.json"
+                self.write_json_file(self.req_friends, self.friend_steamid_json)
+                friend = self.open_json_file(self.friend_steamid_json)
+                self.friend_info.append([friend['response']['players'][0]['personaname'], '█████', '█████', '█████', '█████', '█████', '█████'])
+                continue
 
-    def closeEvent(self, event):
-        self.hide()
-        self.check_vac_thread.running = False
-        self.check_vac_thread.wait(5000)
-        event.accept()
+            self.friend_steamid_json = f'date/{self.steamid}/{self.steam_id_friend}.json'
+            self.friend = self.open_json_file(self.friend_steamid_json)
+            self.friend_info.append([self.friend['response']['players'][0]['personaname'], '█████', '█████', '█████', '█████', '█████', '█████'])
 
+        self.list_all_friends.emit(self.friend_info)
 
 class CheckVacThread(QtCore.QThread, MyWin):
     list_all_users = QtCore.pyqtSignal(list)
@@ -1412,6 +1459,7 @@ class CheckVacThread(QtCore.QThread, MyWin):
         for _ in range(len(self.all_users)):
             self.vac_banned_status.append(self.check_vac_banned(self.all_users[_]))
             self.tmp_steamid = self.all_users[_]
+            #print(self.tmp_steamid, _)
             name = self.open_json_file(f"date/{self.tmp_steamid}/{self.tmp_steamid}_profile_info_{self.today_date}.json")['response']['players'][0]['personaname']
             self.tmp_all_users.append(
                 [
@@ -1489,6 +1537,7 @@ class CheckVacThread(QtCore.QThread, MyWin):
             #print(f'Файл date/{self.steamid}/{self.steamid}_profile_info_{self.today_date}.json на диске, пропускаю! Считываю c диска.')            
             #self.statusBar().showMessage('Файл на диске, пропускаю! Считываю c диска.')       
             return self.open_json_file(self.steamid_profile_json) 
+
 
 if __name__ == "__main__":
     app = QtWidgets.QApplication(sys.argv)
