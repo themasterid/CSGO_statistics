@@ -91,6 +91,7 @@ class MyWin(QtWidgets.QMainWindow):
         self.ui.comboBox_bans.addItems(self.get_items_combobox_bans())
         self.check_vac_thread.list_all_users.connect(self.get_table_bans, QtCore.Qt.QueuedConnection)
         self.check_vac_thread.message_toolbar_bans.connect(self.on_change_check_vac, QtCore.Qt.QueuedConnection)
+        self.check_vac_thread.int_for_progressbar_vac.connect(self.on_change_vac_rows, QtCore.Qt.QueuedConnection)
         self.ui.tableWidget_bans.itemClicked.connect(self.listwidgetclicked) # добавить проверку по строкам
         
 
@@ -145,16 +146,23 @@ class MyWin(QtWidgets.QMainWindow):
     def open_table_weapons(self):
         self.index_weapons = self.ui.comboBox_weapons.currentIndex()
         self.ui.tableWidget_weapons.clear()
-        self.date_weapons = self.open_json_file(f'date/all_weapons/76561198084621617/{self.weapons_list_files[self.index_weapons]}.json')
+        self.date_weapons = self.open_json_file(f'date/all_weapons/{steamid}/{self.weapons_list_files[self.index_weapons]}.json')
         self.ui.tableWidget_weapons.setColumnCount(len(self.date_weapons[0]))
         self.ui.tableWidget_weapons.setRowCount(len(self.date_weapons))
-        self.ui.tableWidget_weapons.setHorizontalHeaderLabels(
-            ('Оружие', 'Точность', 'Летальность',
-             'Убийства', 'Попадания', 'Выстрелы', '% от всех\nубийств'))
+        self.ui.tableWidget_weapons.setHorizontalHeaderLabels((
+                'Оружие',
+                'Точность',
+                'Летальность',
+                'Убийства',
+                'Попадания',
+                'Выстрелы',
+                '% от всех\nубийств'
+                ))
 
         rows_list = []
         for _ in range(len(self.date_weapons)):
             rows_list.append(str(_ + 1))
+        
         self.ui.tableWidget_weapons.setVerticalHeaderLabels(rows_list)
 
         row = 0
@@ -169,9 +177,7 @@ class MyWin(QtWidgets.QMainWindow):
                 col += 1
             row += 1
 
-        self.ui.tableWidget_weapons.horizontalHeader().setSectionResizeMode(
-            0, QHeaderView.Stretch)
-
+        self.ui.tableWidget_weapons.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
         self.ui.tableWidget_weapons.resizeColumnsToContents()
         self.ui.tableWidget_weapons.resizeRowsToContents()
         self.ui.tableWidget_weapons.setSortingEnabled(True)
@@ -180,7 +186,7 @@ class MyWin(QtWidgets.QMainWindow):
     def open_table_friends(self):
         self.index_friends = self.ui.comboBox_friends.currentIndex()
         self.ui.tableWidget_friends.clear()
-        self.friend_info = self.open_json_file(f'date/all_friends/76561198084621617/{self.friends_list_files[self.index_friends]}.json')
+        self.friend_info = self.open_json_file(f'date/all_friends/{steamid}/{self.friends_list_files[self.index_friends]}.json')
         self.ui.tableWidget_friends.setColumnCount(len(self.friend_info[0])) # 7
         self.ui.tableWidget_friends.setRowCount(len(self.friend_info)) # 37
         self.ui.tableWidget_friends.setGridStyle(3)
@@ -214,10 +220,8 @@ class MyWin(QtWidgets.QMainWindow):
 
     def get_table_bans(self, list_vacs):
         self.today = date.today()
-        self.today_date = self.today.strftime("%b-%d-%Y")        
-        # {'players': [{'SteamId': '76561198131788828', 'CommunityBanned': False, 'VACBanned': False, 'NumberOfVACBans': 0, 'DaysSinceLastBan': 0, 'NumberOfGameBans': 0, 'EconomyBan': 'none'}]}
-
-        with open(f'date/all_bans/76561198084621617/{self.today_date}.json', 'w', encoding='utf-8') as self.file_all_bans:
+        self.today_date = self.today.strftime("%b-%d-%Y")                
+        with open(f'date/all_bans/{steamid}/{self.today_date}.json', 'w', encoding='utf-8') as self.file_all_bans:
             json.dump(list_vacs, self.file_all_bans, ensure_ascii=False, indent=4)
             self.file_all_bans.close()
         return
@@ -225,9 +229,7 @@ class MyWin(QtWidgets.QMainWindow):
     def get_table_weapons(self, list_weapons):
         self.today = date.today()
         self.today_date = self.today.strftime("%b-%d-%Y")        
-        # {'players': [{'SteamId': '76561198131788828', 'CommunityBanned': False, 'VACBanned': False, 'NumberOfVACBans': 0, 'DaysSinceLastBan': 0, 'NumberOfGameBans': 0, 'EconomyBan': 'none'}]}
-
-        with open(f'date/all_weapons/76561198084621617/{self.today_date}.json', 'w', encoding='utf-8') as self.file_all_bans:
+        with open(f'date/all_weapons/{steamid}/{self.today_date}.json', 'w', encoding='utf-8') as self.file_all_bans:
             json.dump(list_weapons, self.file_all_bans, ensure_ascii=False, indent=4)
             self.file_all_bans.close()
         return
@@ -235,9 +237,7 @@ class MyWin(QtWidgets.QMainWindow):
     def get_table_friends(self, list_friends):
         self.today = date.today()
         self.today_date = self.today.strftime("%b-%d-%Y")        
-        # {'players': [{'SteamId': '76561198131788828', 'CommunityBanned': False, 'VACBanned': False, 'NumberOfVACBans': 0, 'DaysSinceLastBan': 0, 'NumberOfGameBans': 0, 'EconomyBan': 'none'}]}
-
-        with open(f'date/all_friends/76561198084621617/{self.today_date}.json', 'w', encoding='utf-8') as self.file_all_bans:
+        with open(f'date/all_friends/{steamid}/{self.today_date}.json', 'w', encoding='utf-8') as self.file_all_bans:
             json.dump(list_friends, self.file_all_bans, ensure_ascii=False, indent=4)
             self.file_all_bans.close()
         return
@@ -245,13 +245,13 @@ class MyWin(QtWidgets.QMainWindow):
     def open_table_bans(self):
         self.index = self.ui.comboBox_bans.currentIndex()
         self.ui.tableWidget_bans.clear()
-        all_users = self.open_json_file(f'date/all_bans/76561198084621617/{self.ban_list_files[self.index]}.json')
+        all_users = self.open_json_file(f'date/all_bans/{steamid}/{self.ban_list_files[self.index]}.json')
         self.ui.tableWidget_bans.setColumnCount(len(all_users[0]))
         self.ui.tableWidget_bans.setRowCount(len(all_users))
         self.ui.tableWidget_bans.setGridStyle(3)
         self.ui.tableWidget_bans.selectedItems()
         self.ui.tableWidget_bans.setHorizontalHeaderLabels(
-            ('Стим ИД', 'Имя', 'Бан в\nсообществе','VAC\nбан','Число\nVAC банов','Дней в\nбане','Число\nигровых\nбанов','Бан\nторговой'))
+            ('Стим ИД', 'Имя', 'Бан в\nсообществе','VAC\nбан','Число\nVAC\nбанов','Дней в\nбане','Число\nигровых\nбанов','Бан\nторговой'))
 
         rows_list = []
         for _ in range(len(all_users)):
@@ -897,8 +897,11 @@ class MyWin(QtWidgets.QMainWindow):
     def on_change_check_vac(self, vac_info):
         self.statusBar().showMessage(f'{vac_info}')
 
-    def on_change_vac_rows(self, info_strings):
-        print(info_strings)
+    def on_change_vac_rows(self, info_progress_bar_vac, all_users):
+        self.info_progress_bar_vac = info_progress_bar_vac
+        self.all_users = all_users
+        self.ui.progressBar_bans.setMaximum(self.all_users)
+        self.ui.progressBar_bans.setProperty("value", self.info_progress_bar_vac)
 
     def closeEvent(self, event):
         self.hide()
@@ -1430,50 +1433,52 @@ class CheckFriendsThread(QtCore.QThread, MyWin):
 class CheckVacThread(QtCore.QThread, MyWin):
     list_all_users = QtCore.pyqtSignal(list)
     message_toolbar_bans = QtCore.pyqtSignal(str)
+    int_for_progressbar_vac = QtCore.pyqtSignal(int, int)
 
     def __init__(self, parent=None):        
         QtCore.QThread.__init__(self, parent)
         self.running = False
-        self.count = 0
+        self._ = 0
         self.today = date.today()
         self.today_date = self.today.strftime("%b-%d-%Y")
+        self.vac_banned_status_all = []
+        self.all_users = []
+        self.vac_banned_status = []
+        self.tmp_all_users = []
+        self.tmp_steamid = ""
+        self.name = ''
 
     def run(self):
         self.running = True        
         self.file_all_users = 'all_stats/all_stats.json'
         self.date_match_users = self.open_json_file(self.file_all_users)
-        self.vac_banned_status = []
-        self.all_users = []
+
         for _ in range(len(self.date_match_users)):
             for i in range(10):
-                self.vac_banned_status.append(self.date_match_users[str(_)]['Team' + str(_)][i + 1]['steamid64'])
+                self.vac_banned_status_all.append(self.date_match_users[str(_)]['Team' + str(_)][i + 1]['steamid64'])
 
-        for line in self.vac_banned_status:
+        for line in self.vac_banned_status_all:
             if line not in self.all_users:
                 self.all_users.append(line)
 
-        self.vac_banned_status = []
-        self.tmp_all_users = []
-        self.tmp_steamid = ""
-        name = ''
-        for _ in range(len(self.all_users)):
-            self.vac_banned_status.append(self.check_vac_banned(self.all_users[_]))
-            self.tmp_steamid = self.all_users[_]
-            #print(self.tmp_steamid, _)
-            name = self.open_json_file(f"date/{self.tmp_steamid}/{self.tmp_steamid}_profile_info_{self.today_date}.json")['response']['players'][0]['personaname']
-            self.tmp_all_users.append(
-                [
+        while self.running:
+            self.vac_banned_status.append(self.check_vac_banned(self.all_users[self._]))
+            self.tmp_steamid = self.all_users[self._]
+            self.int_for_progressbar_vac.emit(self._, len(self.all_users)) # get info for progress bar
+            self.name = self.open_json_file(f"date/{self.tmp_steamid}/{self.tmp_steamid}_profile_info_{self.today_date}.json")['response']['players'][0]['personaname']
+            self.tmp_all_users.append([
                     self.tmp_steamid,
-                    name,
-                    '  +  ' if self.vac_banned_status[_]['players'][0]["CommunityBanned"] else '',
-                    '  +  ' if self.vac_banned_status[_]['players'][0]["VACBanned"] else '',
-                    str(self.vac_banned_status[_]['players'][0]["NumberOfVACBans"]) if self.vac_banned_status[_]['players'][0]["NumberOfVACBans"] else "",
-                    str(self.vac_banned_status[_]['players'][0]["DaysSinceLastBan"]) if self.vac_banned_status[_]['players'][0]["DaysSinceLastBan"] else "",
-                    str(self.vac_banned_status[_]['players'][0]["NumberOfGameBans"]) if self.vac_banned_status[_]['players'][0]["NumberOfGameBans"] else "",
-                    "" if self.vac_banned_status[_]['players'][0]["EconomyBan"] == "none" else "  +  "
-            ])
-        
-        self.list_all_users.emit(self.tmp_all_users)
+                    self.name,
+                    'Community Banned' if self.vac_banned_status[self._]['players'][0]["CommunityBanned"] else '',
+                    'VAC Banned' if self.vac_banned_status[self._]['players'][0]["VACBanned"] else '',
+                    str(self.vac_banned_status[self._]['players'][0]["NumberOfVACBans"]) if self.vac_banned_status[self._]['players'][0]["NumberOfVACBans"] else "",
+                    str(self.vac_banned_status[self._]['players'][0]["DaysSinceLastBan"]) if self.vac_banned_status[self._]['players'][0]["DaysSinceLastBan"] else "",
+                    str(self.vac_banned_status[self._]['players'][0]["NumberOfGameBans"]) if self.vac_banned_status[self._]['players'][0]["NumberOfGameBans"] else "",
+                    "" if self.vac_banned_status[self._]['players'][0]["EconomyBan"] == "none" else "Economy Ban"])
+            self._ += 1
+            if self._ == len(self.all_users):
+                self.list_all_users.emit(self.tmp_all_users)
+                break
 
     def check_vac_banned(self, steamid):
         self.steamid = steamid
@@ -1482,9 +1487,8 @@ class CheckVacThread(QtCore.QThread, MyWin):
         self.directory = f"{self.steamid}"
         self.parent_dir = f'date\\{self.steamid}'
         self.path = os.path.join(self.parent_dir, self.directory)
-
         self.get_profile_status(self.steamid)
-        
+
         try:
             os.mkdir(self.path)
         except FileExistsError:
@@ -1516,13 +1520,10 @@ class CheckVacThread(QtCore.QThread, MyWin):
         try:
             open(f'date/{self.steamid}/{self.steamid}_profile_info_{self.today_date}.json', 'r')
         except FileNotFoundError:
-            #self.statusBar().showMessage('1. Файл не на диске, Качаю с сервера Valve! Записываю на диск.')
-            #print(f'Файл date/{self.steamid}/{self.steamid}_profile_info_{self.today_date}.json не на диске, Качаю с сервера Valve! Записываю на диск.')
             self.req_profile_info = requests.get(self.url_profile_info).json()
             self.write_json_file(self.req_profile_info, self.steamid_profile_json)                     
-            #  communityvisibilitystate
-            #  1 - the profile is not visible to you (Private, Friends Only, etc),
-            #  3 - the profile is "Public", and the data is visible.
+            #  communityvisibilitystate 1 - the profile is not visible to you (Private, Friends Only, etc),
+            #  communityvisibilitystate 3 - the profile is "Public", and the data is visible.
             if self.req_profile_info['response']['players'] == []:
                 self.write_json_file('deleted', f'date/deleted_/{self.steamid}_deleted_profile_info_{self.today_date}.json') 
                 return 0
@@ -1534,8 +1535,6 @@ class CheckVacThread(QtCore.QThread, MyWin):
                 return self.open_json_file(self.steamid_profile_json)
         
         if os.path.exists(f'date/{self.steamid}/{self.steamid}_profile_info_{self.today_date}.json'):
-            #print(f'Файл date/{self.steamid}/{self.steamid}_profile_info_{self.today_date}.json на диске, пропускаю! Считываю c диска.')            
-            #self.statusBar().showMessage('Файл на диске, пропускаю! Считываю c диска.')       
             return self.open_json_file(self.steamid_profile_json) 
 
 
