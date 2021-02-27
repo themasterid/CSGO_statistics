@@ -28,23 +28,18 @@ no_info_users = '''
 steamid = keys['steamid']
 key = keys['key']
 steamidkey = keys['steamidkey']
-#knowncode = keys['knowncode']
 
-class MyWin(QtWidgets.QMainWindow):
-    '''
-    keys = {
-    'steamid': 'XXXXXXXXXXXXXXXXX',
-    'key': 'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX',
-    'steamidkey': 'XXXX-XXXX-XXXX',
-    'knowncode': 'CSGO-xxxxx-xxxxx-xxxxx-xxxxx-xxxxx'
-    }
 
-    '''
+class MyWin(QtWidgets.QMainWindow):    
+
     def __init__(self, parent=None):
         QtWidgets.QWidget.__init__(self, parent)
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
-        self.steamid = steamid       
+        self.steamid = steamid
+        self.today = date.today()
+        self.today_date = self.today.strftime("%b-%d-%Y")
+
         self.pixmap_rank = QPixmap('img/ranks/skillgroup18.png')
         self.ui.label_rank.setPixmap(self.pixmap_rank)
         self.ui.lineEdit_steamidfind.setInputMask("99999999999999999;XXXXXXXXXXXXXXXXX")
@@ -106,7 +101,6 @@ class MyWin(QtWidgets.QMainWindow):
         self.steamid = steamid
         self.get_info_profile(self.steamid)
         self.ui.textBrowser_info.setText(self.get_table_statistics(self.steamid))
-        return
 
     def listwidgetclicked(self, item):
         print('Clicked {}'.format(item.text()))
@@ -114,8 +108,6 @@ class MyWin(QtWidgets.QMainWindow):
         webbrowser.open(self.url)
 
     def get_items_combobox_friends(self):
-        self.today = date.today()
-        self.today_date = self.today.strftime("%b-%d-%Y")
         self.dir_path = 'all_friends'
         self.onlyfiles = [self.f for self.f in listdir(f'date/{self.dir_path}/{self.steamid}/') if isfile(join(f'date/{self.dir_path}/{self.steamid}/', self.f))]
         self.friends_list_files = []
@@ -124,8 +116,6 @@ class MyWin(QtWidgets.QMainWindow):
         return self.friends_list_files
 
     def get_items_combobox_weapons(self):
-        self.today = date.today()
-        self.today_date = self.today.strftime("%b-%d-%Y")
         self.dir_path = 'all_weapons'
         self.onlyfiles = [self.f for self.f in listdir(f'date/{self.dir_path}/{self.steamid}/') if isfile(join(f'date/{self.dir_path}/{self.steamid}/', self.f))]
         self.weapons_list_files = []
@@ -134,8 +124,6 @@ class MyWin(QtWidgets.QMainWindow):
         return self.weapons_list_files
 
     def get_items_combobox_bans(self):
-        self.today = date.today()
-        self.today_date = self.today.strftime("%b-%d-%Y")
         self.dir_path = 'all_bans'
         self.onlyfiles = [self.f for self.f in listdir(f'date/{self.dir_path}/{self.steamid}/') if isfile(join(f'date/{self.dir_path}/{self.steamid}/', self.f))]
         self.ban_list_files = []
@@ -181,20 +169,18 @@ class MyWin(QtWidgets.QMainWindow):
         self.ui.tableWidget_weapons.resizeColumnsToContents()
         self.ui.tableWidget_weapons.resizeRowsToContents()
         self.ui.tableWidget_weapons.setSortingEnabled(True)
-        return
 
     def open_table_friends(self):
         self.index_friends = self.ui.comboBox_friends.currentIndex()
         self.ui.tableWidget_friends.clear()
         self.friend_info = self.open_json_file(f'date/all_friends/{steamid}/{self.friends_list_files[self.index_friends]}.json')
-        self.ui.tableWidget_friends.setColumnCount(len(self.friend_info[0])) # 7
-        self.ui.tableWidget_friends.setRowCount(len(self.friend_info)) # 37
+        self.ui.tableWidget_friends.setColumnCount(len(self.friend_info[0]))
+        self.ui.tableWidget_friends.setRowCount(len(self.friend_info))
         self.ui.tableWidget_friends.setGridStyle(3)
         self.ui.tableWidget_friends.setHorizontalHeaderLabels(
             ('Игрок', '█████', '█████', '█████', '█████', '█████', '█████')
             )
         
-        # add index rows 1,2,3,4...
         rows_list = []
         for _ in range(len(self.friend_info)):
             rows_list.append(str(_ + 1))
@@ -216,31 +202,21 @@ class MyWin(QtWidgets.QMainWindow):
         self.ui.tableWidget_friends.resizeColumnsToContents()
         self.ui.tableWidget_friends.resizeRowsToContents()
         self.ui.tableWidget_friends.setSortingEnabled(True)
-        return
 
     def get_table_bans(self, list_vacs):
-        self.today = date.today()
-        self.today_date = self.today.strftime("%b-%d-%Y")                
         with open(f'date/all_bans/{steamid}/{self.today_date}.json', 'w', encoding='utf-8') as self.file_all_bans:
             json.dump(list_vacs, self.file_all_bans, ensure_ascii=False, indent=4)
             self.file_all_bans.close()
-        return
 
     def get_table_weapons(self, list_weapons):
-        self.today = date.today()
-        self.today_date = self.today.strftime("%b-%d-%Y")        
-        with open(f'date/all_weapons/{steamid}/{self.today_date}.json', 'w', encoding='utf-8') as self.file_all_bans:
-            json.dump(list_weapons, self.file_all_bans, ensure_ascii=False, indent=4)
-            self.file_all_bans.close()
-        return
+        with open(f'date/all_weapons/{steamid}/{self.today_date}.json', 'w', encoding='utf-8') as self.file_all_weapons:
+            json.dump(list_weapons, self.file_all_weapons, ensure_ascii=False, indent=4)
+            self.file_all_weapons.close()
 
-    def get_table_friends(self, list_friends):
-        self.today = date.today()
-        self.today_date = self.today.strftime("%b-%d-%Y")        
-        with open(f'date/all_friends/{steamid}/{self.today_date}.json', 'w', encoding='utf-8') as self.file_all_bans:
-            json.dump(list_friends, self.file_all_bans, ensure_ascii=False, indent=4)
-            self.file_all_bans.close()
-        return
+    def get_table_friends(self, list_friends):     
+        with open(f'date/all_friends/{steamid}/{self.today_date}.json', 'w', encoding='utf-8') as self.file_all_friends:
+            json.dump(list_friends, self.file_all_friends, ensure_ascii=False, indent=4)
+            self.file_all_friends.close()
 
     def open_table_bans(self):
         self.index = self.ui.comboBox_bans.currentIndex()
@@ -274,8 +250,6 @@ class MyWin(QtWidgets.QMainWindow):
         return
 
     def update_users_names(self):
-        self.today = date.today()
-        self.today_date = self.today.strftime("%b-%d-%Y")
         # добавить информацию в файл all_stats.json после добавления нового матча с /gcpd/730/?tab=matchhistorycompetitive
         self.file_match_users = 'all_stats/all_stats.json'
         self.date_match_users = self.open_json_file(self.file_match_users)
@@ -293,8 +267,6 @@ class MyWin(QtWidgets.QMainWindow):
 
     def get_profile_test(self, steamid):
         # FIX THISE NAME SELF
-        self.today = date.today()
-        self.today_date = self.today.strftime("%b-%d-%Y")
         self.steamid = steamid
         self.steamid_profile_json = f'date/{self.steamid}/{self.steamid}_profile_info_{self.today_date}.json'
         self.url_profile_info = f'https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v2/?key={key}&steamids={self.steamid}'
@@ -333,8 +305,6 @@ class MyWin(QtWidgets.QMainWindow):
             return self.open_json_file(self.steamid_profile_json) 
 
     def get_info_match(self):
-        self.today = date.today()
-        self.today_date = self.today.strftime("%b-%d-%Y")
         self.file_all_mathes = 'all_stats/all_stats.json'
         self.date_match = self.open_json_file(self.file_all_mathes)
         self.index = self.ui.comboBox_matces.currentIndex()
@@ -496,9 +466,6 @@ class MyWin(QtWidgets.QMainWindow):
         self.ui.textBrowser_info.setText(tmp_text_all)
    
     def get_info_profile(self, steamid):        
-        self.today = date.today()
-        self.today_date = self.today.strftime("%b-%d-%Y")
-        # _{self.today_date}
         self.steamid = steamid
         self.url_profile_info = f'https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v2/?key={key}&steamids={self.steamid}'
         self.check_profile(self.steamid)
@@ -586,9 +553,6 @@ class MyWin(QtWidgets.QMainWindow):
             return self.profile_data_json
 
     def get_country_info(self, steamid):
-        self.today = date.today()
-        self.today_date = self.today.strftime("%b-%d-%Y")
-        # _{self.today_date}
         self.steamid = steamid
         self.text_location = ""
         self.load_from_file = f'date/{self.steamid}/{self.steamid}_profile_info_{self.today_date}.json'
@@ -705,8 +669,6 @@ class MyWin(QtWidgets.QMainWindow):
         return self.text_location
 
     def get_table_statistics(self, steamid):
-        self.today = date.today()
-        self.today_date = self.today.strftime("%b-%d-%Y")
         create_avatar(self.steamid) # create and get avatars for additional players from Valve servers
         self.steamid = steamid
         self.file_profile_info = f'date/{self.steamid}/{self.steamid}_profile_info_{self.today_date}.json'
@@ -1363,8 +1325,6 @@ class CheckWeaponsThread(QtCore.QThread, MyWin):
         return self.date_weapons    
 
     def find_key_by_value(self, finded, steamid):
-        self.today = date.today()        
-        self.today_date = self.today.strftime("%b-%d-%Y")
         self.steamid = steamid
         self.url_all_statistic = f'https://api.steampowered.com/ISteamUserStats/GetUserStatsForGame/v0002/?appid=730&key={key}&steamid={self.steamid}'
         self.get_statistic_json = f'date/{self.steamid}/{self.steamid}_all_statistic_{self.today_date}.json'
