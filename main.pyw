@@ -2,7 +2,7 @@ import json
 import sys
 import requests
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 from PyQt5 import QtWidgets, QtCore
 from res.mainwindows import Ui_MainWindow
 from PyQt5.QtWidgets import QTableWidgetItem, QHeaderView
@@ -14,6 +14,14 @@ from datetime import date
 from os import listdir
 from os.path import isfile, join
 
+style = '''
+ QTableWidget::item {background-color: white;
+ border-style: outset;
+ border-width: 3px; border-radius: 7px; border-color: green} 
+
+ QTableWidget::item:selected {background-color: green;
+ border-width: 5px; border-radius: 7px; color: black; border-color: green}
+ '''
 
 text_not_found = '''
             Извините!\n
@@ -73,6 +81,7 @@ class MyWin(QtWidgets.QMainWindow):
         self.ui.comboBox_friends.addItems(self.get_items_combobox_friends())
         self.check_friends_thread.list_all_friends.connect(self.get_table_friends, QtCore.Qt.QueuedConnection)
         # self.check_friends_thread.message_toolbar_friends.connect(self.on_change_check_friends, QtCore.Qt.QueuedConnection)
+        self.ui.tableWidget_friends.itemDoubleClicked.connect(self.listwidgetclicked) # добавить проверку по строкам
 
         # MATCHES
         #self.ui.pushButton_update_matches.clicked.connect(self.update_users_names)
@@ -87,7 +96,7 @@ class MyWin(QtWidgets.QMainWindow):
         self.check_vac_thread.list_all_users.connect(self.get_table_bans, QtCore.Qt.QueuedConnection)
         self.check_vac_thread.message_toolbar_bans.connect(self.on_change_check_vac, QtCore.Qt.QueuedConnection)
         self.check_vac_thread.int_for_progressbar_vac.connect(self.on_change_vac_rows, QtCore.Qt.QueuedConnection)
-        self.ui.tableWidget_bans.itemClicked.connect(self.listwidgetclicked) # добавить проверку по строкам
+        self.ui.tableWidget_bans.itemDoubleClicked.connect(self.listwidgetclicked) # добавить проверку по строкам
         
 
     def open_my_profile(self):
@@ -103,29 +112,44 @@ class MyWin(QtWidgets.QMainWindow):
         self.ui.textBrowser_info.setText(self.get_table_statistics(self.steamid))
 
     def listwidgetclicked(self, item):
-        print('Clicked {}'.format(item.text()))
-        self.url = f"https://steamcommunity.com/profiles/{item.text()}"
-        webbrowser.open(self.url)
+        try:
+            int(item.text())
+        except:
+            return
 
-    def get_items_combobox_friends(self):
-        self.dir_path = 'all_friends'
-        self.onlyfiles = [self.f for self.f in listdir(f'date/{self.dir_path}/{self.steamid}/') if isfile(join(f'date/{self.dir_path}/{self.steamid}/', self.f))]
-        self.friends_list_files = []
-        for self.files_i in self.onlyfiles:
-            self.friends_list_files.append(self.files_i.split('.')[0])
-        return self.friends_list_files
+        if len(item.text()) != 17:
+            return
+        else:
+            self.url = f"https://steamcommunity.com/profiles/{item.text()}"
+            webbrowser.open(self.url)
 
     def get_items_combobox_weapons(self):
         self.dir_path = 'all_weapons'
-        self.onlyfiles = [self.f for self.f in listdir(f'date/{self.dir_path}/{self.steamid}/') if isfile(join(f'date/{self.dir_path}/{self.steamid}/', self.f))]
+        self.onlyfiles = sorted([self.f for self.f in listdir(f'date/{self.dir_path}/{self.steamid}/') if isfile(join(f'date/{self.dir_path}/{self.steamid}/', self.f))], reverse=True)
         self.weapons_list_files = []
         for self.files_i in self.onlyfiles:
             self.weapons_list_files.append(self.files_i.split('.')[0])
         return self.weapons_list_files
 
+    def get_items_combobox_friends(self):
+        self.dir_path = 'all_friends'
+        self.onlyfiles = sorted([self.f for self.f in listdir(f'date/{self.dir_path}/{self.steamid}/') if isfile(join(f'date/{self.dir_path}/{self.steamid}/', self.f))], reverse=True)
+        self.friends_list_files = []
+        for self.files_i in self.onlyfiles:
+            self.friends_list_files.append(self.files_i.split('.')[0])
+        return self.friends_list_files
+
+    def get_items_combobox_matches(self):
+        self.file_allstats = 'all_stats/all_stats.json'
+        self.match_items_data = self.open_json_file(self.file_allstats)
+        self.match_items = []
+        for _ in range(len(self.match_items_data)):
+            self.match_items.append(str(_ + 1) + ") " + self.match_items_data[str(_)]['date'] + ", map |" + self.match_items_data[str(_)]['Competitive'] + "|")
+        return self.match_items
+
     def get_items_combobox_bans(self):
         self.dir_path = 'all_bans'
-        self.onlyfiles = [self.f for self.f in listdir(f'date/{self.dir_path}/{self.steamid}/') if isfile(join(f'date/{self.dir_path}/{self.steamid}/', self.f))]
+        self.onlyfiles = sorted([self.f for self.f in listdir(f'date/{self.dir_path}/{self.steamid}/') if isfile(join(f'date/{self.dir_path}/{self.steamid}/', self.f))], reverse=True)
         self.ban_list_files = []
         for self.files_i in self.onlyfiles:
             self.ban_list_files.append(self.files_i.split('.')[0])
@@ -137,6 +161,7 @@ class MyWin(QtWidgets.QMainWindow):
         self.date_weapons = self.open_json_file(f'date/all_weapons/{steamid}/{self.weapons_list_files[self.index_weapons]}.json')
         self.ui.tableWidget_weapons.setColumnCount(len(self.date_weapons[0]))
         self.ui.tableWidget_weapons.setRowCount(len(self.date_weapons))
+        self.ui.tableWidget_weapons.setSortingEnabled(True)
         self.ui.tableWidget_weapons.setHorizontalHeaderLabels((
                 'Оружие',
                 'Точность',
@@ -158,17 +183,14 @@ class MyWin(QtWidgets.QMainWindow):
             col = 0
             for item in tup:
                 cellinfo = QTableWidgetItem(item)
-                cellinfo.setFlags(
-                    QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled
-                )
+                cellinfo.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled)
                 self.ui.tableWidget_weapons.setItem(row, col, cellinfo)
                 col += 1
             row += 1
 
-        self.ui.tableWidget_weapons.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
+        self.ui.tableWidget_weapons.setGridStyle(1)
         self.ui.tableWidget_weapons.resizeColumnsToContents()
-        self.ui.tableWidget_weapons.resizeRowsToContents()
-        self.ui.tableWidget_weapons.setSortingEnabled(True)
+        self.setStyleSheet(style)
 
     def open_table_friends(self):
         self.index_friends = self.ui.comboBox_friends.currentIndex()
@@ -176,14 +198,20 @@ class MyWin(QtWidgets.QMainWindow):
         self.friend_info = self.open_json_file(f'date/all_friends/{steamid}/{self.friends_list_files[self.index_friends]}.json')
         self.ui.tableWidget_friends.setColumnCount(len(self.friend_info[0]))
         self.ui.tableWidget_friends.setRowCount(len(self.friend_info))
-        self.ui.tableWidget_friends.setGridStyle(3)
-        self.ui.tableWidget_friends.setHorizontalHeaderLabels(
-            ('Игрок', '█████', '█████', '█████', '█████', '█████', '█████')
-            )
+        self.ui.tableWidget_friends.setSortingEnabled(True)
+        self.ui.tableWidget_friends.setHorizontalHeaderLabels((
+            'SteamID',
+            'Имя',
+            'Друг с',
+            'VAC статус',
+            'Community Banned',
+            'Economy Ban',
+            'Game Bans'))
         
         rows_list = []
         for _ in range(len(self.friend_info)):
             rows_list.append(str(_ + 1))
+
         self.ui.tableWidget_friends.setVerticalHeaderLabels(rows_list)
         
         row = 0
@@ -191,17 +219,14 @@ class MyWin(QtWidgets.QMainWindow):
             col = 0
             for item in tup:
                 cellinfo = QTableWidgetItem(item)
-                cellinfo.setFlags(
-                    QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled
-                )
+                cellinfo.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled)
                 self.ui.tableWidget_friends.setItem(row, col, cellinfo)
                 col += 1
             row += 1
 
-        self.ui.tableWidget_friends.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
+        self.ui.tableWidget_friends.setGridStyle(1)
         self.ui.tableWidget_friends.resizeColumnsToContents()
-        self.ui.tableWidget_friends.resizeRowsToContents()
-        self.ui.tableWidget_friends.setSortingEnabled(True)
+        self.setStyleSheet(style)
 
     def get_table_bans(self, list_vacs):
         with open(f'date/all_bans/{steamid}/{self.today_date}.json', 'w', encoding='utf-8') as self.file_all_bans:
@@ -224,10 +249,9 @@ class MyWin(QtWidgets.QMainWindow):
         all_users = self.open_json_file(f'date/all_bans/{steamid}/{self.ban_list_files[self.index]}.json')
         self.ui.tableWidget_bans.setColumnCount(len(all_users[0]))
         self.ui.tableWidget_bans.setRowCount(len(all_users))
-        self.ui.tableWidget_bans.setGridStyle(3)
-        self.ui.tableWidget_bans.selectedItems()
+        self.ui.tableWidget_bans.setSortingEnabled(True)
         self.ui.tableWidget_bans.setHorizontalHeaderLabels(
-            ('Стим ИД', 'Имя', 'Бан в\nсообществе','VAC\nбан','Число\nVAC\nбанов','Дней в\nбане','Число\nигровых\nбанов','Бан\nторговой'))
+            ('Стим ИД', 'Имя', ' Дата матча ', 'Бан в\nсообществе','  VAC статус  ','Число\nVAC\nбанов','  Дата бана  ','Число\nигровых\nбанов','Бан\nторговой'))
 
         rows_list = []
         for _ in range(len(all_users)):
@@ -242,11 +266,12 @@ class MyWin(QtWidgets.QMainWindow):
                 cellinfo.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled)
                 self.ui.tableWidget_bans.setItem(row, col, cellinfo)
                 col += 1
-            row += 1
-
+            row += 1       
+        
+        #self.ui.tableWidget_bans.sortByColumn(5, QtCore.Qt.DescendingOrder)
+        self.ui.tableWidget_bans.setGridStyle(1)
         self.ui.tableWidget_bans.resizeColumnsToContents()
-        self.ui.tableWidget_bans.resizeRowsToContents()
-        self.ui.tableWidget_bans.setSortingEnabled(True)
+        self.setStyleSheet(style)
         return
 
     def update_users_names(self):
@@ -320,20 +345,65 @@ class MyWin(QtWidgets.QMainWindow):
         if self.date_match[str(self.index)]['Competitive'] == 'de_engage':
             pixmap = QPixmap('img/imgs_maps/de_engage.jpg')
             self.ui.label_image_map.setPixmap(pixmap)
-        else:
+        elif self.date_match[str(self.index)]['Competitive'] == 'de_dust2':
+            pixmap = QPixmap('img/imgs_maps/de_dust_2.jpg')
+            self.ui.label_image_map.setPixmap(pixmap)
+        elif self.date_match[str(self.index)]['Competitive'] == 'cs_office':
+            pixmap = QPixmap('img/imgs_maps/cs_office.jpg')
+            self.ui.label_image_map.setPixmap(pixmap)
+        elif self.date_match[str(self.index)]['Competitive'] == 'de_inferno':
             pixmap = QPixmap('img/imgs_maps/de_inferno.jpg')
             self.ui.label_image_map.setPixmap(pixmap)
+        elif self.date_match[str(self.index)]['Competitive'] == 'de_mirage':
+            pixmap = QPixmap('img/imgs_maps/de_mirage.jpg')
+            self.ui.label_image_map.setPixmap(pixmap)
+        elif self.date_match[str(self.index)]['Competitive'] == 'de_vertigo':
+            pixmap = QPixmap('img/imgs_maps/de_vertigo.jpg')
+            self.ui.label_image_map.setPixmap(pixmap)
+        elif self.date_match[str(self.index)]['Competitive'] == 'de_train':
+            pixmap = QPixmap('img/imgs_maps/de_train.jpg')
+            self.ui.label_image_map.setPixmap(pixmap)
+        elif self.date_match[str(self.index)]['Competitive'] == 'de_ancient':
+            pixmap = QPixmap('img/imgs_maps/de_ancient.jpg')
+            self.ui.label_image_map.setPixmap(pixmap)
+        elif self.date_match[str(self.index)]['Competitive'] == 'de_cache':
+            pixmap = QPixmap('img/imgs_maps/de_cache.jpg')
+            self.ui.label_image_map.setPixmap(pixmap)
+        elif self.date_match[str(self.index)]['Competitive'] == 'cs_apollo':
+            pixmap = QPixmap('img/imgs_maps/cs_apollo.jpg')
+            self.ui.label_image_map.setPixmap(pixmap)
+        elif self.date_match[str(self.index)]['Competitive'] == 'de_overpass':
+            pixmap = QPixmap('img/imgs_maps/de_overpass.jpg')
+            self.ui.label_image_map.setPixmap(pixmap)
+        else:
+            pixmap = QPixmap('img/imgs_maps/nomap.jpg')
+            self.ui.label_image_map.setPixmap(pixmap)
+
+
 
         self.steamid_i = []
         self.name_i = []
         self.player_name_i= []
+        self.vac_status = []
         for self._ in range(10):
             self.ui.progressBar_bans.setMaximum(9)            
             self.ui.progressBar_bans.setProperty("value", self._)
             self.steamid_i.append(self.date_match[str(self.index)]['Team' + str(self.index)][self._ + 1]['steamid64'])
             self.name_i.append(self.get_profile_test(self.steamid_i[self._])['response']['players'][0]['personaname'])
             create_avatar(self.steamid_i[self._])
+            self.vac_status.append(self.check_vac_thread.check_vac_banned(self.steamid_i[self._])['players'][0]['VACBanned'])
             self.player_name_i.append(self.date_match[str(self.index)]['Team' + str(self.index)][self._ + 1]['PlayerName'])
+
+        self.ui.label_vac_status_1.setText('Забанен VAC' if self.vac_status[0] else '')
+        self.ui.label_vac_status_2.setText('Забанен VAC' if self.vac_status[1] else '')
+        self.ui.label_vac_status_3.setText('Забанен VAC' if self.vac_status[2] else '')
+        self.ui.label_vac_status_4.setText('Забанен VAC' if self.vac_status[3] else '')
+        self.ui.label_vac_status_5.setText('Забанен VAC' if self.vac_status[4] else '')
+        self.ui.label_vac_status_6.setText('Забанен VAC' if self.vac_status[5] else '')
+        self.ui.label_vac_status_7.setText('Забанен VAC' if self.vac_status[6] else '')
+        self.ui.label_vac_status_8.setText('Забанен VAC' if self.vac_status[7] else '')
+        self.ui.label_vac_status_9.setText('Забанен VAC' if self.vac_status[8] else '')
+        self.ui.label_vac_status_10.setText('Забанен VAC' if self.vac_status[9] else '')
 
         self.ui.label_competitive.setText(self.competitive)
         self.ui.label_date.setText(self.date)
@@ -450,14 +520,6 @@ class MyWin(QtWidgets.QMainWindow):
         self.ui.label_sscore10.setText(self.player_name_i[9][7])
 
         return
-
-    def get_items_combobox_matches(self):
-        self.file_allstats = 'all_stats/all_stats.json'
-        self.match_items_data = self.open_json_file(self.file_allstats)
-        self.match_items = []
-        for _ in range(len(self.match_items_data)):
-            self.match_items.append(str(_ + 1) + ") " + self.match_items_data[str(_)]['date'])
-        return self.match_items
 
     def get_statistics(self):
         self.steamid = self.steamid
@@ -862,7 +924,7 @@ class MyWin(QtWidgets.QMainWindow):
     def on_change_vac_rows(self, info_progress_bar_vac, all_users):
         self.info_progress_bar_vac = info_progress_bar_vac
         self.all_users = all_users
-        self.ui.progressBar_bans.setMaximum(self.all_users)
+        self.ui.progressBar_bans.setMaximum(self.all_users - 1)
         self.ui.progressBar_bans.setProperty("value", self.info_progress_bar_vac)
 
     def closeEvent(self, event):
@@ -1350,11 +1412,10 @@ class CheckFriendsThread(QtCore.QThread, MyWin):
         self.running = False
         self.today = date.today()
         self.today_date = self.today.strftime("%b-%d-%Y")
+        self.get_vac_status = CheckVacThread()
 
     def run(self):
         self.running = True        
-        self.file_all_users = 'all_stats/all_stats.json'
-        self.date_match_users = self.open_json_file(self.file_all_users)
         self.steamid = steamid
         self.url_friends_list = f'https://api.steampowered.com/ISteamUser/GetFriendList/v1/?key={key}&steamid={self.steamid}'
         self.all_friend_list_json = f'date/{self.steamid}/{self.steamid}_all_friend_list_{self.today_date}.json'
@@ -1373,6 +1434,8 @@ class CheckFriendsThread(QtCore.QThread, MyWin):
         
         for i in range(len(self.friend_steamid['friendslist']['friends'])):
             self.steam_id_friend = self.friend_steamid['friendslist']['friends'][i]['steamid']
+            self.friend_since_friend = str(datetime.fromtimestamp(self.friend_steamid['friendslist']['friends'][i]['friend_since'])).split(' ')[0]
+            self.vac_status = self.get_vac_status.check_vac_banned(self.steam_id_friend)
             self.url_friend_info = f'https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v2/?key={key}&steamids={self.steam_id_friend}'
             try:
                 f = open(f'date/{self.steamid}/{self.steam_id_friend}.json', 'r', encoding='utf-8')
@@ -1380,15 +1443,28 @@ class CheckFriendsThread(QtCore.QThread, MyWin):
                 self.req_friends = requests.get(self.url_friend_info).json()
                 self.friend_steamid_json = f"date/{self.steamid}/{self.req_friends['response']['players'][0]['steamid']}.json"
                 self.write_json_file(self.req_friends, self.friend_steamid_json)
-                friend = self.open_json_file(self.friend_steamid_json)
-                self.friend_info.append([friend['response']['players'][0]['personaname'], '█████', '█████', '█████', '█████', '█████', '█████'])
+                self.friend = self.open_json_file(self.friend_steamid_json)                
+                self.friend_info.append([
+                    self.steam_id_friend,
+                    self.friend['response']['players'][0]['personaname'],
+                    self.friend_since_friend,
+                    'VAC БАН' if self.vac_status['players'][0]['VACBanned'] else '',
+                    'Community Banned' if self.vac_status['players'][0]["CommunityBanned"] else '',
+                    "" if self.vac_status['players'][0]["EconomyBan"] == "none" else "Economy Ban",
+                    str(self.vac_status['players'][0]["NumberOfGameBans"]) if self.vac_status['players'][0]["NumberOfGameBans"] else ""])
                 continue
 
             self.friend_steamid_json = f'date/{self.steamid}/{self.steam_id_friend}.json'
             self.friend = self.open_json_file(self.friend_steamid_json)
-            self.friend_info.append([self.friend['response']['players'][0]['personaname'], '█████', '█████', '█████', '█████', '█████', '█████'])
-
-        self.list_all_friends.emit(self.friend_info)
+            self.friend_info.append([
+                    self.steam_id_friend,
+                    self.friend['response']['players'][0]['personaname'],
+                    self.friend_since_friend,
+                    'VAC БАН' if self.vac_status['players'][0]['VACBanned'] else '',
+                    'Community Banned' if self.vac_status['players'][0]["CommunityBanned"] else '',
+                    "" if self.vac_status['players'][0]["EconomyBan"] == "none" else "Economy Ban",
+                    str(self.vac_status['players'][0]["NumberOfGameBans"]) if self.vac_status['players'][0]["NumberOfGameBans"] else ""])
+            self.list_all_friends.emit(self.friend_info)
 
 class CheckVacThread(QtCore.QThread, MyWin):
     list_all_users = QtCore.pyqtSignal(list)
@@ -1407,34 +1483,45 @@ class CheckVacThread(QtCore.QThread, MyWin):
         self.tmp_all_users = []
         self.tmp_steamid = ""
         self.name = ''
+        self.date_match_all = []
 
     def run(self):
         self.running = True        
         self.file_all_users = 'all_stats/all_stats.json'
-        self.date_match_users = self.open_json_file(self.file_all_users)
+        self.date_match_users = self.open_json_file(self.file_all_users)        
 
-        for _ in range(len(self.date_match_users)):
+        for _ in range(len(self.date_match_users)):            
             for i in range(10):
-                self.vac_banned_status_all.append(self.date_match_users[str(_)]['Team' + str(_)][i + 1]['steamid64'])
+                self.vac_banned_status_all.append([self.date_match_users[str(_)]['Team' + str(_)][i + 1]['steamid64'], self.date_match_users[str(_)]['date']])
+                #self.date_match_all.append(self.date_match_users[str(_)]['date'])
 
         for line in self.vac_banned_status_all:
             if line not in self.all_users:
                 self.all_users.append(line)
 
         while self.running:
-            self.vac_banned_status.append(self.check_vac_banned(self.all_users[self._]))
-            self.tmp_steamid = self.all_users[self._]
+            self.vac_banned_status.append(self.check_vac_banned(self.all_users[self._][0]))
+            self.tmp_steamid = self.all_users[self._][0]
             self.int_for_progressbar_vac.emit(self._, len(self.all_users)) # get info for progress bar
             self.name = self.open_json_file(f"date/{self.tmp_steamid}/{self.tmp_steamid}_profile_info_{self.today_date}.json")['response']['players'][0]['personaname']
-            self.tmp_all_users.append([
-                    self.tmp_steamid,
-                    self.name,
-                    'Community Banned' if self.vac_banned_status[self._]['players'][0]["CommunityBanned"] else '',
-                    'VAC Banned' if self.vac_banned_status[self._]['players'][0]["VACBanned"] else '',
-                    str(self.vac_banned_status[self._]['players'][0]["NumberOfVACBans"]) if self.vac_banned_status[self._]['players'][0]["NumberOfVACBans"] else "",
-                    str(self.vac_banned_status[self._]['players'][0]["DaysSinceLastBan"]) if self.vac_banned_status[self._]['players'][0]["DaysSinceLastBan"] else "",
-                    str(self.vac_banned_status[self._]['players'][0]["NumberOfGameBans"]) if self.vac_banned_status[self._]['players'][0]["NumberOfGameBans"] else "",
-                    "" if self.vac_banned_status[self._]['players'][0]["EconomyBan"] == "none" else "Economy Ban"])
+            
+            self.date_bans = self.today - timedelta(days = self.vac_banned_status[self._]['players'][0]["DaysSinceLastBan"])
+            
+            #if self.date_bans == self.today and self.vac_banned_status[self._]['players'][0]["VACBanned"]:
+            #    print('0', self.date_bans)
+
+            if (str(self.all_users[self._][1]) <= str(self.date_bans).split(' ')[0]) and self.vac_banned_status[self._]['players'][0]["VACBanned"]:
+                self.tmp_all_users.append([
+                        self.tmp_steamid,
+                        self.name,
+                        str(self.all_users[self._][1]),
+                        'Забанен' if self.vac_banned_status[self._]['players'][0]["CommunityBanned"] else '',
+                        'Забанен' if self.vac_banned_status[self._]['players'][0]["VACBanned"] else '',
+                        str(self.vac_banned_status[self._]['players'][0]["NumberOfVACBans"]) if self.vac_banned_status[self._]['players'][0]["NumberOfVACBans"] else "",
+                        str(self.date_bans).split(' ')[0] if self.vac_banned_status[self._]['players'][0]["DaysSinceLastBan"] else f'Новый! {self.today}',
+                        str(self.vac_banned_status[self._]['players'][0]["NumberOfGameBans"]) if self.vac_banned_status[self._]['players'][0]["NumberOfGameBans"] else "",
+                        "" if self.vac_banned_status[self._]['players'][0]["EconomyBan"] == "none" else 'Забанен'])
+            
             self._ += 1
             if self._ == len(self.all_users):
                 self.list_all_users.emit(self.tmp_all_users)
