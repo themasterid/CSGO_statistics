@@ -15,12 +15,21 @@ from os import listdir
 from os.path import isfile, join
 
 style = '''
- QTableWidget::item {background-color: white;
- border-style: outset;
- border-width: 3px; border-radius: 7px; border-color: green} 
+QTableWidget::item {
+    font: 75 12pt "Times New Roman";
+    background-color: white;
+    border-style: outset;
+    border-width: 3px;
+    border-radius: 7px;
+    border-color: green} 
 
- QTableWidget::item:selected {background-color: green;
- border-width: 5px; border-radius: 7px; color: black; border-color: green}
+ QTableWidget::item:selected {
+    font: 75 12pt "Times New Roman";
+    background-color: green;
+    border-width: 5px;
+    border-radius: 7px;
+    color: black;
+    border-color: green}
  '''
 
 text_not_found = '''
@@ -47,6 +56,8 @@ class MyWin(QtWidgets.QMainWindow):
         self.steamid = steamid
         self.today = date.today()
         self.today_date = self.today.strftime("%b-%d-%Y")
+
+        self.setStyleSheet(style)
 
         self.pixmap_rank = QPixmap('img/ranks/skillgroup18.png')
         self.ui.label_rank.setPixmap(self.pixmap_rank)
@@ -144,7 +155,7 @@ class MyWin(QtWidgets.QMainWindow):
         self.match_items_data = self.open_json_file(self.file_allstats)
         self.match_items = []
         for _ in range(len(self.match_items_data)):
-            self.match_items.append(str(_ + 1) + ") " + self.match_items_data[str(_)]['date'] + ", map |" + self.match_items_data[str(_)]['Competitive'] + "|")
+            self.match_items.append(str(_ + 1) + ") " + self.match_items_data[_]['date'] + ", map |" + self.match_items_data[_]['competitive'] + "|")
         return self.match_items
 
     def get_items_combobox_bans(self):
@@ -280,13 +291,13 @@ class MyWin(QtWidgets.QMainWindow):
         self.date_match_users = self.open_json_file(self.file_match_users)
         self.index_match = self.ui.comboBox_matces.currentIndex()
         self.list_steamids, self.list_player_files, self.date_name_users = [], [], []
-        for _ in range(len(self.date_match_users[str(self.index_match)]['Team' + str(self.index_match)]) - 1):
-            self.ui.progressBar_bans.setMaximum(len(self.date_match_users[str(self.index_match)]['Team' + str(self.index_match)]) - 1)
+        for _ in range(len(self.date_match_users[str(self.index_match)]['team' + str(self.index_match)]) - 1):
+            self.ui.progressBar_bans.setMaximum(len(self.date_match_users[str(self.index_match)]['team' + str(self.index_match)]) - 1)
             self.ui.progressBar_bans.setProperty("value", _)
-            self.list_steamids.append(self.date_match_users[str(self.index_match)]['Team' + str(self.index_match)][_ + 1]['steamid64'])
+            self.list_steamids.append(self.date_match_users[str(self.index_match)]['team' + str(self.index_match)][_ + 1]['steamid64'])
             self.list_player_files.append(f'date/{self.list_steamids[_]}/{self.list_steamids[_]}_profile_info_{self.today_date}.json')
             self.date_name_users.append(self.open_json_file(self.list_player_files[_], self.list_player_files[_])['response']['players'][0]['personaname'])
-            self.date_match_users[str(self.index_match)]['Team' + str(self.index_match)][_ + 1]['PlayerName'][0] = self.date_name_users[_]
+            self.date_match_users[str(self.index_match)]['team' + str(self.index_match)][_ + 1]['player_name'][0] = self.date_name_users[_]
         
         self.write_json_file(self.date_match_users, self.file_match_users)
 
@@ -334,45 +345,45 @@ class MyWin(QtWidgets.QMainWindow):
         self.date_match = self.open_json_file(self.file_all_mathes)
         self.index = self.ui.comboBox_matces.currentIndex()
 
-        self.competitive = 'Карта ' + self.date_match[str(self.index)]['Competitive']
-        self.date = 'Дата ' + self.date_match[str(self.index)]['date']
-        self.waittime = 'Время ожидания ' + self.date_match[str(self.index)]['WaitTime']
-        self.matchduration = 'Время игры ' + self.date_match[str(self.index)]['MatchDuration']
-        self.score = 'Счет ' + self.date_match[str(self.index)]['Team' + str(self.index)][0]['score']
-        self.score_center = self.date_match[str(self.index)]['Team' + str(self.index)][0]['score']
+        self.competitive = 'Карта ' + self.date_match[self.index]['competitive']
+        self.date = 'Дата ' + self.date_match[self.index]['date']
+        self.waittime = 'Время ожидания ' + self.date_match[self.index]['wait_time']
+        self.matchduration = 'Время игры ' + self.date_match[self.index]['match_duration']
+        self.score = 'Счет ' + self.date_match[self.index]['score']
+        self.score_center = self.date_match[self.index]['score']
         
         # FIX add all maps
-        if self.date_match[str(self.index)]['Competitive'] == 'de_engage':
+        if self.date_match[self.index]['competitive'] == 'de_engage':
             pixmap = QPixmap('img/imgs_maps/de_engage.jpg')
             self.ui.label_image_map.setPixmap(pixmap)
-        elif self.date_match[str(self.index)]['Competitive'] == 'de_dust2':
+        elif self.date_match[self.index]['competitive'] == 'Dust II':
             pixmap = QPixmap('img/imgs_maps/de_dust_2.jpg')
             self.ui.label_image_map.setPixmap(pixmap)
-        elif self.date_match[str(self.index)]['Competitive'] == 'cs_office':
+        elif self.date_match[self.index]['competitive'] == 'cs_office':
             pixmap = QPixmap('img/imgs_maps/cs_office.jpg')
             self.ui.label_image_map.setPixmap(pixmap)
-        elif self.date_match[str(self.index)]['Competitive'] == 'de_inferno':
+        elif self.date_match[self.index]['competitive'] == 'de_inferno':
             pixmap = QPixmap('img/imgs_maps/de_inferno.jpg')
             self.ui.label_image_map.setPixmap(pixmap)
-        elif self.date_match[str(self.index)]['Competitive'] == 'de_mirage':
+        elif self.date_match[self.index]['competitive'] == 'de_mirage':
             pixmap = QPixmap('img/imgs_maps/de_mirage.jpg')
             self.ui.label_image_map.setPixmap(pixmap)
-        elif self.date_match[str(self.index)]['Competitive'] == 'de_vertigo':
+        elif self.date_match[self.index]['competitive'] == 'de_vertigo':
             pixmap = QPixmap('img/imgs_maps/de_vertigo.jpg')
             self.ui.label_image_map.setPixmap(pixmap)
-        elif self.date_match[str(self.index)]['Competitive'] == 'de_train':
+        elif self.date_match[self.index]['competitive'] == 'de_train':
             pixmap = QPixmap('img/imgs_maps/de_train.jpg')
             self.ui.label_image_map.setPixmap(pixmap)
-        elif self.date_match[str(self.index)]['Competitive'] == 'de_ancient':
+        elif self.date_match[self.index]['competitive'] == 'de_ancient':
             pixmap = QPixmap('img/imgs_maps/de_ancient.jpg')
             self.ui.label_image_map.setPixmap(pixmap)
-        elif self.date_match[str(self.index)]['Competitive'] == 'de_cache':
+        elif self.date_match[self.index]['competitive'] == 'de_cache':
             pixmap = QPixmap('img/imgs_maps/de_cache.jpg')
             self.ui.label_image_map.setPixmap(pixmap)
-        elif self.date_match[str(self.index)]['Competitive'] == 'cs_apollo':
+        elif self.date_match[self.index]['competitive'] == 'cs_apollo':
             pixmap = QPixmap('img/imgs_maps/cs_apollo.jpg')
             self.ui.label_image_map.setPixmap(pixmap)
-        elif self.date_match[str(self.index)]['Competitive'] == 'de_overpass':
+        elif self.date_match[self.index]['competitive'] == 'de_overpass':
             pixmap = QPixmap('img/imgs_maps/de_overpass.jpg')
             self.ui.label_image_map.setPixmap(pixmap)
         else:
@@ -388,12 +399,13 @@ class MyWin(QtWidgets.QMainWindow):
         for self._ in range(10):
             self.ui.progressBar_bans.setMaximum(9)            
             self.ui.progressBar_bans.setProperty("value", self._)
-            self.steamid_i.append(self.date_match[str(self.index)]['Team' + str(self.index)][self._ + 1]['steamid64'])
+            self.steamid_i.append(self.date_match[self.index]['team'][self._]['steamid64'])
             self.name_i.append(self.get_profile_test(self.steamid_i[self._])['response']['players'][0]['personaname'])
             create_avatar(self.steamid_i[self._])
             self.vac_status.append(self.check_vac_thread.check_vac_banned(self.steamid_i[self._])['players'][0]['VACBanned'])
-            self.player_name_i.append(self.date_match[str(self.index)]['Team' + str(self.index)][self._ + 1]['PlayerName'])
+            self.player_name_i.append(self.date_match[self.index]['team'][self._]['player_name'])
 
+        
         self.ui.label_vac_status_1.setText('Забанен VAC' if self.vac_status[0] else '')
         self.ui.label_vac_status_2.setText('Забанен VAC' if self.vac_status[1] else '')
         self.ui.label_vac_status_3.setText('Забанен VAC' if self.vac_status[2] else '')
@@ -440,85 +452,84 @@ class MyWin(QtWidgets.QMainWindow):
         self.ui.label_playername7.setText(self.name_i[6])
         self.ui.label_playername8.setText(self.name_i[7])
         self.ui.label_playername9.setText(self.name_i[8])
-        self.ui.label_playername10.setText(self.name_i[9])
+        self.ui.label_playername10.setText(self.name_i[9])        
 
-        self.ui.label_pping1.setText(self.player_name_i[0][1])
-        self.ui.label_pping2.setText(self.player_name_i[1][1])
-        self.ui.label_pping3.setText(self.player_name_i[2][1])
-        self.ui.label_pping4.setText(self.player_name_i[3][1])
-        self.ui.label_pping5.setText(self.player_name_i[4][1])
-        self.ui.label_pping6.setText(self.player_name_i[5][1])
-        self.ui.label_pping7.setText(self.player_name_i[6][1])
-        self.ui.label_pping8.setText(self.player_name_i[7][1])
-        self.ui.label_pping9.setText(self.player_name_i[8][1])
-        self.ui.label_pping10.setText(self.player_name_i[9][1])
+        self.ui.label_pping1.setText(self.player_name_i[0][1][0])
+        self.ui.label_pping2.setText(self.player_name_i[1][1][0])        
+        self.ui.label_pping3.setText(self.player_name_i[2][1][0])
+        self.ui.label_pping4.setText(self.player_name_i[3][1][0])
+        self.ui.label_pping5.setText(self.player_name_i[4][1][0])
+        self.ui.label_pping6.setText(self.player_name_i[5][1][0])
+        self.ui.label_pping7.setText(self.player_name_i[6][1][0])
+        self.ui.label_pping8.setText(self.player_name_i[7][1][0])
+        self.ui.label_pping9.setText(self.player_name_i[8][1][0])
+        self.ui.label_pping10.setText(self.player_name_i[9][1][0])
+        
+        self.ui.label_kk1.setText(self.player_name_i[0][1][1])
+        self.ui.label_kk2.setText(self.player_name_i[1][1][1])
+        self.ui.label_kk3.setText(self.player_name_i[2][1][1])
+        self.ui.label_kk4.setText(self.player_name_i[3][1][1])
+        self.ui.label_kk5.setText(self.player_name_i[4][1][1])
+        self.ui.label_kk6.setText(self.player_name_i[5][1][1])
+        self.ui.label_kk7.setText(self.player_name_i[6][1][1])
+        self.ui.label_kk8.setText(self.player_name_i[7][1][1])
+        self.ui.label_kk9.setText(self.player_name_i[8][1][1])
+        self.ui.label_kk10.setText(self.player_name_i[9][1][1])
+        
+        self.ui.label_aa1.setText(self.player_name_i[0][1][2])
+        self.ui.label_aa2.setText(self.player_name_i[1][1][2])
+        self.ui.label_aa3.setText(self.player_name_i[2][1][2])
+        self.ui.label_aa4.setText(self.player_name_i[3][1][2])
+        self.ui.label_aa5.setText(self.player_name_i[4][1][2])
+        self.ui.label_aa6.setText(self.player_name_i[5][1][2])
+        self.ui.label_aa7.setText(self.player_name_i[6][1][2])
+        self.ui.label_aa8.setText(self.player_name_i[7][1][2])
+        self.ui.label_aa9.setText(self.player_name_i[8][1][2])
+        self.ui.label_aa10.setText(self.player_name_i[9][1][2])
 
-        self.ui.label_kk1.setText(self.player_name_i[0][2])
-        self.ui.label_kk2.setText(self.player_name_i[1][2])
-        self.ui.label_kk3.setText(self.player_name_i[2][2])
-        self.ui.label_kk4.setText(self.player_name_i[3][2])
-        self.ui.label_kk5.setText(self.player_name_i[4][2])
-        self.ui.label_kk6.setText(self.player_name_i[5][2])
-        self.ui.label_kk7.setText(self.player_name_i[6][2])
-        self.ui.label_kk8.setText(self.player_name_i[7][2])
-        self.ui.label_kk9.setText(self.player_name_i[8][2])
-        self.ui.label_kk10.setText(self.player_name_i[9][2])
+        self.ui.label_dd1.setText(self.player_name_i[0][1][3])
+        self.ui.label_dd2.setText(self.player_name_i[1][1][3])
+        self.ui.label_dd3.setText(self.player_name_i[2][1][3])
+        self.ui.label_dd4.setText(self.player_name_i[3][1][3])
+        self.ui.label_dd5.setText(self.player_name_i[4][1][3])
+        self.ui.label_dd6.setText(self.player_name_i[5][1][3])
+        self.ui.label_dd7.setText(self.player_name_i[6][1][3])
+        self.ui.label_dd8.setText(self.player_name_i[7][1][3])
+        self.ui.label_dd9.setText(self.player_name_i[8][1][3])
+        self.ui.label_dd10.setText(self.player_name_i[9][1][3])
 
-        self.ui.label_aa1.setText(self.player_name_i[0][3])
-        self.ui.label_aa2.setText(self.player_name_i[1][3])
-        self.ui.label_aa3.setText(self.player_name_i[2][3])
-        self.ui.label_aa4.setText(self.player_name_i[3][3])
-        self.ui.label_aa5.setText(self.player_name_i[4][3])
-        self.ui.label_aa6.setText(self.player_name_i[5][3])
-        self.ui.label_aa7.setText(self.player_name_i[6][3])
-        self.ui.label_aa8.setText(self.player_name_i[7][3])
-        self.ui.label_aa9.setText(self.player_name_i[8][3])
-        self.ui.label_aa10.setText(self.player_name_i[9][3])
+        self.ui.label_mmvp1.setText(self.player_name_i[0][1][4])
+        self.ui.label_mmvp2.setText(self.player_name_i[1][1][4])
+        self.ui.label_mmvp3.setText(self.player_name_i[2][1][4])
+        self.ui.label_mmvp4.setText(self.player_name_i[3][1][4])
+        self.ui.label_mmvp5.setText(self.player_name_i[4][1][4])
+        self.ui.label_mmvp6.setText(self.player_name_i[5][1][4])
+        self.ui.label_mmvp7.setText(self.player_name_i[6][1][4])
+        self.ui.label_mmvp8.setText(self.player_name_i[7][1][4])
+        self.ui.label_mmvp9.setText(self.player_name_i[8][1][4])
+        self.ui.label_mmvp10.setText(self.player_name_i[9][1][4])
 
-        self.ui.label_dd1.setText(self.player_name_i[0][4])
-        self.ui.label_dd2.setText(self.player_name_i[1][4])
-        self.ui.label_dd3.setText(self.player_name_i[2][4])
-        self.ui.label_dd4.setText(self.player_name_i[3][4])
-        self.ui.label_dd5.setText(self.player_name_i[4][4])
-        self.ui.label_dd6.setText(self.player_name_i[5][4])
-        self.ui.label_dd7.setText(self.player_name_i[6][4])
-        self.ui.label_dd8.setText(self.player_name_i[7][4])
-        self.ui.label_dd9.setText(self.player_name_i[8][4])
-        self.ui.label_dd10.setText(self.player_name_i[9][4])
+        self.ui.label_hhsp1.setText(self.player_name_i[0][1][5])
+        self.ui.label_hhsp2.setText(self.player_name_i[1][1][5])
+        self.ui.label_hhsp3.setText(self.player_name_i[2][1][5])
+        self.ui.label_hhsp4.setText(self.player_name_i[3][1][5])
+        self.ui.label_hhsp5.setText(self.player_name_i[4][1][5])
+        self.ui.label_hhsp6.setText(self.player_name_i[5][1][5])
+        self.ui.label_hhsp7.setText(self.player_name_i[6][1][5])
+        self.ui.label_hhsp8.setText(self.player_name_i[7][1][5])
+        self.ui.label_hhsp9.setText(self.player_name_i[8][1][5])
+        self.ui.label_hhsp10.setText(self.player_name_i[9][1][5])
 
-        self.ui.label_mmvp1.setText(self.player_name_i[0][5])
-        self.ui.label_mmvp2.setText(self.player_name_i[1][5])
-        self.ui.label_mmvp3.setText(self.player_name_i[2][5])
-        self.ui.label_mmvp4.setText(self.player_name_i[3][5])
-        self.ui.label_mmvp5.setText(self.player_name_i[4][5])
-        self.ui.label_mmvp6.setText(self.player_name_i[5][5])
-        self.ui.label_mmvp7.setText(self.player_name_i[6][5])
-        self.ui.label_mmvp8.setText(self.player_name_i[7][5])
-        self.ui.label_mmvp9.setText(self.player_name_i[8][5])
-        self.ui.label_mmvp10.setText(self.player_name_i[9][5])
-
-        self.ui.label_hhsp1.setText(self.player_name_i[0][6])
-        self.ui.label_hhsp2.setText(self.player_name_i[1][6])
-        self.ui.label_hhsp3.setText(self.player_name_i[2][6])
-        self.ui.label_hhsp4.setText(self.player_name_i[3][6])
-        self.ui.label_hhsp5.setText(self.player_name_i[4][6])
-        self.ui.label_hhsp6.setText(self.player_name_i[5][6])
-        self.ui.label_hhsp7.setText(self.player_name_i[6][6])
-        self.ui.label_hhsp8.setText(self.player_name_i[7][6])
-        self.ui.label_hhsp9.setText(self.player_name_i[8][6])
-        self.ui.label_hhsp10.setText(self.player_name_i[9][6])
-
-        self.ui.label_sscore1.setText(self.player_name_i[0][7])
-        self.ui.label_sscore2.setText(self.player_name_i[1][7])
-        self.ui.label_sscore3.setText(self.player_name_i[2][7])
-        self.ui.label_sscore4.setText(self.player_name_i[3][7])
-        self.ui.label_sscore5.setText(self.player_name_i[4][7])
-        self.ui.label_sscore6.setText(self.player_name_i[5][7])
-        self.ui.label_sscore7.setText(self.player_name_i[6][7])
-        self.ui.label_sscore8.setText(self.player_name_i[7][7])
-        self.ui.label_sscore9.setText(self.player_name_i[8][7])
-        self.ui.label_sscore10.setText(self.player_name_i[9][7])
-
+        self.ui.label_sscore1.setText(self.player_name_i[0][1][6])
+        self.ui.label_sscore2.setText(self.player_name_i[1][1][6])
+        self.ui.label_sscore3.setText(self.player_name_i[2][1][6])
+        self.ui.label_sscore4.setText(self.player_name_i[3][1][6])
+        self.ui.label_sscore5.setText(self.player_name_i[4][1][6])
+        self.ui.label_sscore6.setText(self.player_name_i[5][1][6])
+        self.ui.label_sscore7.setText(self.player_name_i[6][1][6])
+        self.ui.label_sscore8.setText(self.player_name_i[7][1][6])
+        self.ui.label_sscore9.setText(self.player_name_i[8][1][6])
+        self.ui.label_sscore10.setText(self.player_name_i[9][1][6])
         return
 
     def get_statistics(self):
@@ -1492,7 +1503,7 @@ class CheckVacThread(QtCore.QThread, MyWin):
 
         for _ in range(len(self.date_match_users)):            
             for i in range(10):
-                self.vac_banned_status_all.append([self.date_match_users[str(_)]['Team' + str(_)][i + 1]['steamid64'], self.date_match_users[str(_)]['date']])
+                self.vac_banned_status_all.append([self.date_match_users[_]['team'][i]['steamid64'], self.date_match_users[_]['date']])
                 #self.date_match_all.append(self.date_match_users[str(_)]['date'])
 
         for line in self.vac_banned_status_all:
@@ -1503,6 +1514,7 @@ class CheckVacThread(QtCore.QThread, MyWin):
             self.vac_banned_status.append(self.check_vac_banned(self.all_users[self._][0]))
             self.tmp_steamid = self.all_users[self._][0]
             self.int_for_progressbar_vac.emit(self._, len(self.all_users)) # get info for progress bar
+            print(self.tmp_steamid)
             self.name = self.open_json_file(f"date/{self.tmp_steamid}/{self.tmp_steamid}_profile_info_{self.today_date}.json")['response']['players'][0]['personaname']
             
             self.date_bans = self.today - timedelta(days = self.vac_banned_status[self._]['players'][0]["DaysSinceLastBan"])
