@@ -362,10 +362,10 @@ class MyWin(QtWidgets.QMainWindow):
         elif self.date_match[self.index]['competitive'] == 'cs_office':
             pixmap = QPixmap('img/imgs_maps/cs_office.jpg')
             self.ui.label_image_map.setPixmap(pixmap)
-        elif self.date_match[self.index]['competitive'] == 'de_inferno':
+        elif self.date_match[self.index]['competitive'] == 'Inferno':
             pixmap = QPixmap('img/imgs_maps/de_inferno.jpg')
             self.ui.label_image_map.setPixmap(pixmap)
-        elif self.date_match[self.index]['competitive'] == 'de_mirage':
+        elif self.date_match[self.index]['competitive'] == 'Mirage':
             pixmap = QPixmap('img/imgs_maps/de_mirage.jpg')
             self.ui.label_image_map.setPixmap(pixmap)
         elif self.date_match[self.index]['competitive'] == 'de_vertigo':
@@ -377,20 +377,24 @@ class MyWin(QtWidgets.QMainWindow):
         elif self.date_match[self.index]['competitive'] == 'de_ancient':
             pixmap = QPixmap('img/imgs_maps/de_ancient.jpg')
             self.ui.label_image_map.setPixmap(pixmap)
-        elif self.date_match[self.index]['competitive'] == 'de_cache':
+        elif self.date_match[self.index]['competitive'] == 'Cache':
             pixmap = QPixmap('img/imgs_maps/de_cache.jpg')
             self.ui.label_image_map.setPixmap(pixmap)
         elif self.date_match[self.index]['competitive'] == 'cs_apollo':
             pixmap = QPixmap('img/imgs_maps/cs_apollo.jpg')
             self.ui.label_image_map.setPixmap(pixmap)
-        elif self.date_match[self.index]['competitive'] == 'de_overpass':
+        elif self.date_match[self.index]['competitive'] == 'Overpass':
             pixmap = QPixmap('img/imgs_maps/de_overpass.jpg')
+            self.ui.label_image_map.setPixmap(pixmap)
+        elif self.date_match[self.index]['competitive'] == 'Nuke':
+            pixmap = QPixmap('img/imgs_maps/de_nuke.jpg')
+            self.ui.label_image_map.setPixmap(pixmap)
+        elif self.date_match[self.index]['competitive'] == 'Train':
+            pixmap = QPixmap('img/imgs_maps/de_train.jpg')
             self.ui.label_image_map.setPixmap(pixmap)
         else:
             pixmap = QPixmap('img/imgs_maps/nomap.jpg')
             self.ui.label_image_map.setPixmap(pixmap)
-
-
 
         self.steamid_i = []
         self.name_i = []
@@ -405,17 +409,16 @@ class MyWin(QtWidgets.QMainWindow):
             self.vac_status.append(self.check_vac_thread.check_vac_banned(self.steamid_i[self._])['players'][0]['VACBanned'])
             self.player_name_i.append(self.date_match[self.index]['team'][self._]['player_name'])
 
-        
-        self.ui.label_vac_status_1.setText('Забанен VAC' if self.vac_status[0] else '')
-        self.ui.label_vac_status_2.setText('Забанен VAC' if self.vac_status[1] else '')
-        self.ui.label_vac_status_3.setText('Забанен VAC' if self.vac_status[2] else '')
-        self.ui.label_vac_status_4.setText('Забанен VAC' if self.vac_status[3] else '')
-        self.ui.label_vac_status_5.setText('Забанен VAC' if self.vac_status[4] else '')
-        self.ui.label_vac_status_6.setText('Забанен VAC' if self.vac_status[5] else '')
-        self.ui.label_vac_status_7.setText('Забанен VAC' if self.vac_status[6] else '')
-        self.ui.label_vac_status_8.setText('Забанен VAC' if self.vac_status[7] else '')
-        self.ui.label_vac_status_9.setText('Забанен VAC' if self.vac_status[8] else '')
-        self.ui.label_vac_status_10.setText('Забанен VAC' if self.vac_status[9] else '')
+        self.ui.label_vac_status_1.setText('Забанен VAC' if self.vac_status[0] else 'Банов нет')
+        self.ui.label_vac_status_2.setText('Забанен VAC' if self.vac_status[1] else 'Банов нет')
+        self.ui.label_vac_status_3.setText('Забанен VAC' if self.vac_status[2] else 'Банов нет')
+        self.ui.label_vac_status_4.setText('Забанен VAC' if self.vac_status[3] else 'Банов нет')
+        self.ui.label_vac_status_5.setText('Забанен VAC' if self.vac_status[4] else 'Банов нет')
+        self.ui.label_vac_status_6.setText('Забанен VAC' if self.vac_status[5] else 'Банов нет')
+        self.ui.label_vac_status_7.setText('Забанен VAC' if self.vac_status[6] else 'Банов нет')
+        self.ui.label_vac_status_8.setText('Забанен VAC' if self.vac_status[7] else 'Банов нет')
+        self.ui.label_vac_status_9.setText('Забанен VAC' if self.vac_status[8] else 'Банов нет')
+        self.ui.label_vac_status_10.setText('Забанен VAC' if self.vac_status[9] else 'Банов нет')
 
         self.ui.label_competitive.setText(self.competitive)
         self.ui.label_date.setText(self.date)
@@ -1504,7 +1507,6 @@ class CheckVacThread(QtCore.QThread, MyWin):
         for _ in range(len(self.date_match_users)):            
             for i in range(10):
                 self.vac_banned_status_all.append([self.date_match_users[_]['team'][i]['steamid64'], self.date_match_users[_]['date']])
-                #self.date_match_all.append(self.date_match_users[str(_)]['date'])
 
         for line in self.vac_banned_status_all:
             if line not in self.all_users:
@@ -1514,13 +1516,8 @@ class CheckVacThread(QtCore.QThread, MyWin):
             self.vac_banned_status.append(self.check_vac_banned(self.all_users[self._][0]))
             self.tmp_steamid = self.all_users[self._][0]
             self.int_for_progressbar_vac.emit(self._, len(self.all_users)) # get info for progress bar
-            print(self.tmp_steamid)
             self.name = self.open_json_file(f"date/{self.tmp_steamid}/{self.tmp_steamid}_profile_info_{self.today_date}.json")['response']['players'][0]['personaname']
-            
             self.date_bans = self.today - timedelta(days = self.vac_banned_status[self._]['players'][0]["DaysSinceLastBan"])
-            
-            #if self.date_bans == self.today and self.vac_banned_status[self._]['players'][0]["VACBanned"]:
-            #    print('0', self.date_bans)
 
             if (str(self.all_users[self._][1]) <= str(self.date_bans).split(' ')[0]) and self.vac_banned_status[self._]['players'][0]["VACBanned"]:
                 self.tmp_all_users.append([
@@ -1556,12 +1553,14 @@ class CheckVacThread(QtCore.QThread, MyWin):
         try:
             open(f'date/{self.steamid}/{self.steamid}_ban_status_{self.today_date}.json', 'r')
         except FileNotFoundError:
-            self.message_toolbar_bans.emit('Создаю на диске ' + f'date/{self.steamid}/{self.steamid}_ban_status_{self.today_date}.json')
+            #self.message_toolbar_bans.emit('Создаю на диске ' + f'date/{self.steamid}/{self.steamid}_ban_status_{self.today_date}.json')
+            self.message_toolbar_bans.emit(self.steamid)
             self.request_bans = requests.get(self.url_steam_bans).json()
             self.write_json_file(self.request_bans, self.file_bans_users)
             return self.open_json_file(self.file_bans_users)
 
-        self.message_toolbar_bans.emit('Открываю с диска ' + f'date/{self.steamid}/{self.steamid}_ban_status_{self.today_date}.json')
+        #self.message_toolbar_bans.emit('Открываю с диска ' + f'date/{self.steamid}/{self.steamid}_ban_status_{self.today_date}.json')
+        self.message_toolbar_bans.emit(self.steamid)
         return self.open_json_file(self.file_bans_users)
 
     def get_profile_status(self, steamid):
