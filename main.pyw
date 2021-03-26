@@ -59,7 +59,7 @@ class MyWin(QtWidgets.QMainWindow):
 
         self.setStyleSheet(style)
 
-        self.pixmap_rank = QPixmap('img/ranks/skillgroup18.png')
+        self.pixmap_rank = QPixmap('img/ranks/skillgroup0.png')
         self.ui.label_rank.setPixmap(self.pixmap_rank)
         self.ui.lineEdit_steamidfind.setInputMask("99999999999999999;XXXXXXXXXXXXXXXXX")
         self.ui.lineEdit_steamidfind.setText('Введите Steam ID')
@@ -74,6 +74,17 @@ class MyWin(QtWidgets.QMainWindow):
 
         # STATS
         self.get_info_profile(self.steamid)
+        if self.get_info_profile(self.steamid)['response']['players'][0]['communityvisibilitystate'] == 1:
+            self.ui.tabWidget.setTabEnabled(1, False)
+            self.ui.tabWidget.setTabEnabled(2, False)
+            self.ui.tabWidget.setTabEnabled(3, False)
+            self.ui.tabWidget.setTabEnabled(4, False)
+        elif self.get_info_profile(self.steamid)['response']['players'][0]['communityvisibilitystate'] == 3:
+            self.ui.tabWidget.setTabEnabled(1, True)
+            self.ui.tabWidget.setTabEnabled(2, True)
+            self.ui.tabWidget.setTabEnabled(3, True)
+            self.ui.tabWidget.setTabEnabled(4, True)
+
         self.ui.pushButton_update_stat.clicked.connect(self.get_statistics)
         self.ui.textBrowser_info.setText(self.get_table_statistics(self.steamid))
 
@@ -245,11 +256,13 @@ class MyWin(QtWidgets.QMainWindow):
             self.file_all_bans.close()
 
     def get_table_weapons(self, list_weapons):
+        # add check status profile
         with open(f'date/all_weapons/{steamid}/{self.today_date}.json', 'w', encoding='utf-8') as self.file_all_weapons:
             json.dump(list_weapons, self.file_all_weapons, ensure_ascii=False, indent=4)
             self.file_all_weapons.close()
 
-    def get_table_friends(self, list_friends):     
+    def get_table_friends(self, list_friends):
+        # add check status profile     
         with open(f'date/all_friends/{steamid}/{self.today_date}.json', 'w', encoding='utf-8') as self.file_all_friends:
             json.dump(list_friends, self.file_all_friends, ensure_ascii=False, indent=4)
             self.file_all_friends.close()
@@ -301,8 +314,7 @@ class MyWin(QtWidgets.QMainWindow):
         
         self.write_json_file(self.date_match_users, self.file_match_users)
 
-    def get_profile_test(self, steamid):
-        # FIX THISE NAME SELF
+    def get_profile_check(self, steamid):
         self.steamid = steamid
         self.steamid_profile_json = f'date/{self.steamid}/{self.steamid}_profile_info_{self.today_date}.json'
         self.url_profile_info = f'https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v2/?key={key}&steamids={self.steamid}'
@@ -317,16 +329,13 @@ class MyWin(QtWidgets.QMainWindow):
         try:
             open(f'date/{self.steamid}/{self.steamid}_profile_info_{self.today_date}.json', 'r')
         except FileNotFoundError:
-            #self.statusBar().showMessage('1. Файл не на диске, Качаю с сервера Valve! Записываю на диск.')
-            #print(f'Файл date/{self.steamid}/{self.steamid}_profile_info_{self.today_date}.json не на диске, Качаю с сервера Valve! Записываю на диск.')
             self.req_profile_info = requests.get(self.url_profile_info).json()
-            self.write_json_file(self.req_profile_info, self.steamid_profile_json)                     
-            #  communityvisibilitystate
-            #  1 - the profile is not visible to you (Private, Friends Only, etc),
-            #  3 - the profile is "Public", and the data is visible.
+            self.write_json_file(self.req_profile_info, self.steamid_profile_json)
             if self.req_profile_info['response']['players'] == []:
                 self.write_json_file('deleted', f'date/deleted_/{self.steamid}_deleted_profile_info_{self.today_date}.json') 
-                return 0
+                return 0                    
+            #  1 - the profile is not visible to you (Private, Friends Only, etc),
+            #  3 - the profile is "Public", and the data is visible.
             # FIX OUTPUT DATA
             if self.req_profile_info['response']['players'][0]['communityvisibilitystate'] == 1:
                 self.write_json_file(self.req_profile_info, self.steamid_profile_json)
@@ -336,8 +345,6 @@ class MyWin(QtWidgets.QMainWindow):
                 return self.open_json_file(self.steamid_profile_json)
         
         if os.path.exists(f'date/{self.steamid}/{self.steamid}_profile_info_{self.today_date}.json'):
-            #print(f'Файл date/{self.steamid}/{self.steamid}_profile_info_{self.today_date}.json на диске, пропускаю! Считываю c диска.')            
-            #self.statusBar().showMessage('Файл на диске, пропускаю! Считываю c диска.')       
             return self.open_json_file(self.steamid_profile_json) 
 
     def get_info_match(self):
@@ -404,7 +411,7 @@ class MyWin(QtWidgets.QMainWindow):
             self.ui.progressBar_bans.setMaximum(9)            
             self.ui.progressBar_bans.setProperty("value", self._)
             self.steamid_i.append(self.date_match[self.index]['team'][self._]['steamid64'])
-            self.name_i.append(self.get_profile_test(self.steamid_i[self._])['response']['players'][0]['personaname'])
+            self.name_i.append(self.get_profile_check(self.steamid_i[self._])['response']['players'][0]['personaname'])
             create_avatar(self.steamid_i[self._])
             self.vac_status.append(self.check_vac_thread.check_vac_banned(self.steamid_i[self._])['players'][0]['VACBanned'])
             self.player_name_i.append(self.date_match[self.index]['team'][self._]['player_name'])
@@ -558,7 +565,6 @@ class MyWin(QtWidgets.QMainWindow):
             open(f'date/{self.steamid}/{self.steamid}_profile_info_{self.today_date}.json', 'r')
         except FileNotFoundError:
             self.req_profile_info = requests.get(self.url_profile_info).json()            
-            #  communityvisibilitystate
             #  1 - the profile is not visible to you (Private, Friends Only, etc),
             #  3 - the profile is "Public", and the data is visible.
             if self.req_profile_info['response']['players'][0]['communityvisibilitystate'] == 1:
@@ -571,30 +577,28 @@ class MyWin(QtWidgets.QMainWindow):
                     'The profile is "Public", and the data is visible')
                 self.steamid_profile_json = f'date/{self.steamid}/{self.steamid}_profile_info_{self.today_date}.json'
                 self.profile_data_json = self.write_json_file(self.req_profile_info, self.steamid_profile_json)
-        
+
         create_avatar(self.steamid)
         self.steamidprofile_json = f'date/{self.steamid}/{self.steamid}_profile_info_{self.today_date}.json'
         self.profile_data_json = self.open_json_file(self.steamidprofile_json)
         
         #  0 - Offline, 1 - Online, 2 - Busy, 3 - Away, 4 - Snooze, 5 - looking to trade, 6 - looking to play
-        #request_status = requests.get(self.url_profile_info).json()
         self.personastate = self.profile_data_json['response']['players'][0]['personastate']
         #  1 - the profile is not visible to you (Private, Friends Only, etc),
         #  3 - the profile is "Public", and the data is visible.
         self.communityvisibilitystate = self.profile_data_json['response']['players'][0]['communityvisibilitystate']
-        
         if self.communityvisibilitystate == 1:
+            self.ui.tabWidget.setTabEnabled(1, False)
+            self.ui.tabWidget.setTabEnabled(2, False)
+            self.ui.tabWidget.setTabEnabled(3, False)
+            self.ui.tabWidget.setTabEnabled(4, False)
+           
             self.statusBar().showMessage(
                 '1 - the profile is not visible to you (Private, Friends Only, etc)')
-            
-            #self.ui.label_playername1_avatar.setPixmap(QPixmap(f"date/{self.steamid}/{self.steamid}_avatarfull.jpg"))
-            #image = QImage()
-            #image.loadFromData(requests.get(profile_data_json['response']['players'][0]['avatarfull']).content)
-            #self.ui.label_avatar.setPixmap(QPixmap(image))
             self.ui.label_avatar.setPixmap(QPixmap(f"date/{self.steamid}/{self.steamid}_avatarfull_{self.today_date}.jpg"))
             self.ui.label_personaname.setText(self.profile_data_json['response']['players'][0]['personaname'] + ' (Приватный профиль)')
             return
-        elif self.communityvisibilitystate == 3:
+        elif self.communityvisibilitystate == 3:           
             self.statusBar().showMessage(
                 '3 - the profile is "Public", and the data is visible')
             if self.personastate == 1:
@@ -959,8 +963,10 @@ class CheckWeaponsThread(QtCore.QThread, MyWin):
     def run(self):        
         self.steamid = steamid
         self.weapons_info = self.get_info_weapons(self.steamid)
+        
         if self.weapons_info == [('', '', '', '', '', '', '')]:
-            return 
+            return
+
         today = date.today()
         today_date = today.strftime("%b-%d-%Y")
         with open(f'date/all_weapons/{self.steamid}/{today_date}.json', 'w', encoding='utf-8') as self.file_all_weapons:
@@ -972,10 +978,10 @@ class CheckWeaponsThread(QtCore.QThread, MyWin):
     def get_info_weapons(self, steamid):
         self.steamid = steamid
         self.url_profile_info = f'https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v2/?key={key}&steamids={self.steamid}'
-        if requests.get(self.url_profile_info).json()[
-            'response']['players'][0]['communityvisibilitystate'] == 1:
+        if requests.get(self.url_profile_info).json()['response']['players'][0]['communityvisibilitystate'] == 1:
             self.date_weapons = [('', '', '', '', '', '', '')]
             return self.date_weapons
+
         total_ksh_ak47 = [
             self.find_key_by_value('total_kills_ak47', self.steamid),
             self.find_key_by_value('total_shots_ak47', self.steamid),
@@ -1405,6 +1411,11 @@ class CheckWeaponsThread(QtCore.QThread, MyWin):
         self.url_all_statistic = f'https://api.steampowered.com/ISteamUserStats/GetUserStatsForGame/v0002/?appid=730&key={key}&steamid={self.steamid}'
         self.get_statistic_json = f'date/{self.steamid}/{self.steamid}_all_statistic_{self.today_date}.json'
         self.finded = finded
+        
+        if requests.get(self.url_all_statistic).status_code == 500:
+            #print('Статистика по оружию недоступна!', self.steamid)
+            return
+
         try:
             open(self.get_statistic_json, 'r', encoding='utf-8')
         except:
@@ -1440,11 +1451,17 @@ class CheckFriendsThread(QtCore.QThread, MyWin):
             self.req_friends_list = requests.get(self.url_friends_list).json()
             self.write_json_file(self.req_friends_list, self.all_friend_list_json)
 
-        if self.get_profile_test(self.steamid) == 0:
+        if self.get_profile_check(self.steamid) == 0:
             self.friend_info = [('', '', '', '', '', '', '')]
-            return self.friend_info  
+            return self.friend_info
         
         self.friend_steamid = self.open_json_file(self.all_friend_list_json)
+
+        try:
+            self.friend_steamid['friendslist']['friends']
+        except KeyError:
+            print('Скрытый профиль!')            
+            return
         
         for i in range(len(self.friend_steamid['friendslist']['friends'])):
             self.steam_id_friend = self.friend_steamid['friendslist']['friends'][i]['steamid']
