@@ -119,7 +119,7 @@ class MyWin(QtWidgets.QMainWindow):
         self.check_vac_thread.message_toolbar_bans.connect(self.on_change_check_vac, QtCore.Qt.QueuedConnection)
         self.check_vac_thread.int_for_progressbar_vac.connect(self.on_change_vac_rows, QtCore.Qt.QueuedConnection)
         self.ui.tableWidget_bans.itemDoubleClicked.connect(self.listwidgetclicked) # добавить проверку по строкам
-        
+
 
     def open_my_profile(self):
         self.ui.tabWidget.setTabEnabled(1, True)
@@ -346,7 +346,8 @@ class MyWin(QtWidgets.QMainWindow):
         
         if os.path.exists(f'date/{self.steamid}/{self.steamid}_profile_info_{self.today_date}.json'):
             return self.open_json_file(self.steamid_profile_json) 
-
+    
+    # Add thread GetInfoBanThread
     def get_info_match(self):
         self.file_all_mathes = 'all_stats/all_stats.json'
         self.date_match = self.open_json_file(self.file_all_mathes)
@@ -1497,6 +1498,124 @@ class CheckFriendsThread(QtCore.QThread, MyWin):
                     str(self.vac_status['players'][0]["NumberOfGameBans"]) if self.vac_status['players'][0]["NumberOfGameBans"] else ""])
             self.list_all_friends.emit(self.friend_info)
 
+class CheckMatchesThread(QtCore.QThread, MyWin):
+    pass
+    '''
+    list_all_users = QtCore.pyqtSignal(list)
+    message_toolbar_bans = QtCore.pyqtSignal(str)
+    int_for_progressbar_vac = QtCore.pyqtSignal(int, int)
+
+    def __init__(self, parent=None):        
+        QtCore.QThread.__init__(self, parent)
+        self.running = False
+        self._ = 0
+        self.today = date.today()
+        self.today_date = self.today.strftime("%b-%d-%Y")
+        self.vac_banned_status_all = []
+        self.all_users = []
+        self.vac_banned_status = []
+        self.tmp_all_users = []
+        self.tmp_steamid = ""
+        self.name = ''
+        self.date_match_all = []
+
+    def run(self):
+        self.running = True        
+        self.file_all_users = 'all_stats/all_stats.json'
+        self.date_match_users = self.open_json_file(self.file_all_users)        
+
+        for _ in range(len(self.date_match_users)):            
+            for i in range(10):
+                self.vac_banned_status_all.append([self.date_match_users[_]['team'][i]['steamid64'], self.date_match_users[_]['date']])
+
+        for line in self.vac_banned_status_all:
+            if line not in self.all_users:
+                self.all_users.append(line)
+
+        while self.running:
+            self.vac_banned_status.append(self.check_vac_banned(self.all_users[self._][0]))
+            self.tmp_steamid = self.all_users[self._][0]
+            self.int_for_progressbar_vac.emit(self._, len(self.all_users)) # get info for progress bar
+            self.name = self.open_json_file(f"date/{self.tmp_steamid}/{self.tmp_steamid}_profile_info_{self.today_date}.json")['response']['players'][0]['personaname']
+            self.date_bans = self.today - timedelta(days = self.vac_banned_status[self._]['players'][0]["DaysSinceLastBan"])
+
+            if (str(self.all_users[self._][1]) <= str(self.date_bans).split(' ')[0]) and self.vac_banned_status[self._]['players'][0]["VACBanned"]:
+                self.tmp_all_users.append([
+                        self.tmp_steamid,
+                        self.name,
+                        str(self.all_users[self._][1]),
+                        'Забанен' if self.vac_banned_status[self._]['players'][0]["CommunityBanned"] else '',
+                        'Забанен' if self.vac_banned_status[self._]['players'][0]["VACBanned"] else '',
+                        str(self.vac_banned_status[self._]['players'][0]["NumberOfVACBans"]) if self.vac_banned_status[self._]['players'][0]["NumberOfVACBans"] else "",
+                        str(self.date_bans).split(' ')[0] if self.vac_banned_status[self._]['players'][0]["DaysSinceLastBan"] else f'Новый! {self.today}',
+                        str(self.vac_banned_status[self._]['players'][0]["NumberOfGameBans"]) if self.vac_banned_status[self._]['players'][0]["NumberOfGameBans"] else "",
+                        "" if self.vac_banned_status[self._]['players'][0]["EconomyBan"] == "none" else 'Забанен'])
+            
+            self._ += 1
+            if self._ == len(self.all_users):
+                self.list_all_users.emit(self.tmp_all_users)
+                break
+
+    def check_vac_banned(self, steamid):
+        self.steamid = steamid
+        self.file_bans_users = f'date/{self.steamid}/{self.steamid}_ban_status_{self.today_date}.json'
+        self.url_steam_bans = f'https://api.steampowered.com/ISteamUser/GetPlayerBans/v1/?key={key}&steamids={self.steamid}'       
+        self.directory = f"{self.steamid}"
+        self.parent_dir = f'date\\{self.steamid}'
+        self.path = os.path.join(self.parent_dir, self.directory)
+        self.get_profile_status(self.steamid)
+
+        try:
+            os.mkdir(self.path)
+        except FileExistsError:
+            pass
+
+        try:
+            open(f'date/{self.steamid}/{self.steamid}_ban_status_{self.today_date}.json', 'r')
+        except FileNotFoundError:
+            #self.message_toolbar_bans.emit('Создаю на диске ' + f'date/{self.steamid}/{self.steamid}_ban_status_{self.today_date}.json')
+            self.message_toolbar_bans.emit(self.steamid)
+            self.request_bans = requests.get(self.url_steam_bans).json()
+            self.write_json_file(self.request_bans, self.file_bans_users)
+            return self.open_json_file(self.file_bans_users)
+
+        #self.message_toolbar_bans.emit('Открываю с диска ' + f'date/{self.steamid}/{self.steamid}_ban_status_{self.today_date}.json')
+        self.message_toolbar_bans.emit(self.steamid)
+        return self.open_json_file(self.file_bans_users)
+
+    def get_profile_status(self, steamid):
+        self.steamid = steamid
+        self.steamid_profile_json = f'date/{self.steamid}/{self.steamid}_profile_info_{self.today_date}.json'
+        self.url_profile_info = f'https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v2/?key={key}&steamids={self.steamid}'
+        self.directory = f"{self.steamid}"
+        self.parent_dir = "date\\"
+        self.path = os.path.join(self.parent_dir, self.directory)        
+        try:
+            os.mkdir(self.path)
+        except FileExistsError:
+            pass
+
+        try:
+            open(f'date/{self.steamid}/{self.steamid}_profile_info_{self.today_date}.json', 'r')
+        except FileNotFoundError:
+            self.req_profile_info = requests.get(self.url_profile_info).json()
+            self.write_json_file(self.req_profile_info, self.steamid_profile_json)                     
+            #  communityvisibilitystate 1 - the profile is not visible to you (Private, Friends Only, etc),
+            #  communityvisibilitystate 3 - the profile is "Public", and the data is visible.
+            if self.req_profile_info['response']['players'] == []:
+                self.write_json_file('deleted', f'date/deleted_/{self.steamid}_deleted_profile_info_{self.today_date}.json') 
+                return 0
+            if self.req_profile_info['response']['players'][0]['communityvisibilitystate'] == 1:
+                self.write_json_file(self.req_profile_info, self.steamid_profile_json)
+                return self.open_json_file(self.steamid_profile_json)
+            elif self.req_profile_info['response']['players'][0]['communityvisibilitystate'] == 3:
+                self.write_json_file(self.req_profile_info, self.steamid_profile_json)
+                return self.open_json_file(self.steamid_profile_json)
+        
+        if os.path.exists(f'date/{self.steamid}/{self.steamid}_profile_info_{self.today_date}.json'):
+            return self.open_json_file(self.steamid_profile_json) 
+    '''
+
 class CheckVacThread(QtCore.QThread, MyWin):
     list_all_users = QtCore.pyqtSignal(list)
     message_toolbar_bans = QtCore.pyqtSignal(str)
@@ -1533,6 +1652,15 @@ class CheckVacThread(QtCore.QThread, MyWin):
             self.vac_banned_status.append(self.check_vac_banned(self.all_users[self._][0]))
             self.tmp_steamid = self.all_users[self._][0]
             self.int_for_progressbar_vac.emit(self._, len(self.all_users)) # get info for progress bar
+            '''
+            try:
+                self.name = self.open_json_file(f"date/{self.tmp_steamid}/{self.tmp_steamid}_profile_info_{self.today_date}.json")['response']['players'][0]['personaname']
+            except IndexError:
+                print('Аккаунт удален')
+                self.name = '[deleted]'
+                self.tmp_steamid = '76561197997566454'
+                self.date_bans = 0
+            '''
             self.name = self.open_json_file(f"date/{self.tmp_steamid}/{self.tmp_steamid}_profile_info_{self.today_date}.json")['response']['players'][0]['personaname']
             self.date_bans = self.today - timedelta(days = self.vac_banned_status[self._]['players'][0]["DaysSinceLastBan"])
 
