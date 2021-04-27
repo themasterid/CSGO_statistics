@@ -14,7 +14,8 @@ from datetime import date
 from os import listdir
 from os.path import isfile, join
 
-style = '''
+'''
+style = 
 QTableWidget::item {
     font: 75 12pt "Times New Roman";
     background-color: white;
@@ -57,7 +58,7 @@ class MyWin(QtWidgets.QMainWindow):
         self.today = date.today()
         self.today_date = self.today.strftime("%b-%d-%Y")
 
-        self.setStyleSheet(style)
+        
 
         self.pixmap_rank = QPixmap('img/ranks/skillgroup0.png')
         self.ui.label_rank.setPixmap(self.pixmap_rank)
@@ -212,7 +213,7 @@ class MyWin(QtWidgets.QMainWindow):
 
         self.ui.tableWidget_weapons.setGridStyle(1)
         self.ui.tableWidget_weapons.resizeColumnsToContents()
-        self.setStyleSheet(style)
+        
 
     def open_table_friends(self):
         self.index_friends = self.ui.comboBox_friends.currentIndex()
@@ -248,7 +249,7 @@ class MyWin(QtWidgets.QMainWindow):
 
         self.ui.tableWidget_friends.setGridStyle(1)
         self.ui.tableWidget_friends.resizeColumnsToContents()
-        self.setStyleSheet(style)
+        
 
     def get_table_bans(self, list_vacs):
         with open(f'date/all_bans/{steamid}/{self.today_date}.json', 'w', encoding='utf-8') as self.file_all_bans:
@@ -291,11 +292,9 @@ class MyWin(QtWidgets.QMainWindow):
                 self.ui.tableWidget_bans.setItem(row, col, cellinfo)
                 col += 1
             row += 1       
-        
-        #self.ui.tableWidget_bans.sortByColumn(5, QtCore.Qt.DescendingOrder)
+
         self.ui.tableWidget_bans.setGridStyle(1)
         self.ui.tableWidget_bans.resizeColumnsToContents()
-        self.setStyleSheet(style)
         return
 
     def update_users_names(self):
@@ -1743,6 +1742,7 @@ class CheckVacThread(QtCore.QThread, MyWin):
 
 if __name__ == "__main__":
     app = QtWidgets.QApplication(sys.argv)
+    app.setStyleSheet(open('Combinear.qss', 'r').read())
     myapp = MyWin()
     myapp.show()
     sys.exit(app.exec_())
