@@ -175,7 +175,7 @@ class MyWin(QtWidgets.QMainWindow):
         self.ban_list_files = []
         for self.files_i in self.onlyfiles:            
             self.ban_list_files.append(self.files_i.split('.')[0])
-        return sorted(self.ban_list_files)
+        return self.ban_list_files
 
     def open_table_weapons(self):
         self.index_weapons = self.ui.comboBox_weapons.currentIndex()
