@@ -13,6 +13,7 @@ from get_steam_avatar import create_avatar
 from datetime import date
 from os import listdir
 from os.path import isfile, join
+from operator import itemgetter
 
 '''
 style = 
@@ -56,9 +57,7 @@ class MyWin(QtWidgets.QMainWindow):
         self.ui.setupUi(self)
         self.steamid = steamid
         self.today = date.today()
-        self.today_date = self.today.strftime("%b-%d-%Y")
-
-        
+        self.today_date = self.today.strftime("%b-%d-%Y")        
 
         self.pixmap_rank = QPixmap('img/ranks/skillgroup0.png')
         self.ui.label_rank.setPixmap(self.pixmap_rank)
@@ -174,9 +173,9 @@ class MyWin(QtWidgets.QMainWindow):
         self.dir_path = 'all_bans'
         self.onlyfiles = sorted([self.f for self.f in listdir(f'date/{self.dir_path}/{self.steamid}/') if isfile(join(f'date/{self.dir_path}/{self.steamid}/', self.f))], reverse=True)
         self.ban_list_files = []
-        for self.files_i in self.onlyfiles:
+        for self.files_i in self.onlyfiles:            
             self.ban_list_files.append(self.files_i.split('.')[0])
-        return self.ban_list_files
+        return sorted(self.ban_list_files)
 
     def open_table_weapons(self):
         self.index_weapons = self.ui.comboBox_weapons.currentIndex()
@@ -1660,6 +1659,7 @@ class CheckVacThread(QtCore.QThread, MyWin):
                 self.tmp_steamid = '76561197997566454'
                 self.date_bans = 0
             '''
+            #print(self.tmp_steamid)
             self.name = self.open_json_file(f"date/{self.tmp_steamid}/{self.tmp_steamid}_profile_info_{self.today_date}.json")['response']['players'][0]['personaname']
             self.date_bans = self.today - timedelta(days = self.vac_banned_status[self._]['players'][0]["DaysSinceLastBan"])
 
@@ -1742,7 +1742,7 @@ class CheckVacThread(QtCore.QThread, MyWin):
 
 if __name__ == "__main__":
     app = QtWidgets.QApplication(sys.argv)
-    app.setStyleSheet(open('Combinear.qss', 'r').read())
+    #app.setStyleSheet(open('Combinear.qss', 'r').read())
     myapp = MyWin()
     myapp.show()
     sys.exit(app.exec_())
