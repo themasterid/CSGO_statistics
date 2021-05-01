@@ -92,21 +92,20 @@ class MyWin(QtWidgets.QMainWindow):
         self.ui.pushButton_update_weapons.clicked.connect(self.on_start_weapons)
         #self.ui.pushButton_update_weapons.clicked.connect(self.on_stop_weapons)
         self.ui.comboBox_weapons.activated.connect(self.open_table_weapons)
-        self.ui.comboBox_weapons.addItems(self.get_items_combobox_weapons())
-        self.check_weapons_thread.list_all_weapons.connect(self.get_table_weapons, QtCore.Qt.QueuedConnection)
+        self.ui.comboBox_weapons.addItems(self.get_items_combobox('all_weapons'))
+        self.check_weapons_thread.list_all_weapons.connect(self.get_tables, QtCore.Qt.QueuedConnection)
         # self.check_friends_thread.message_toolbar_friends.connect(self.on_change_check_friends, QtCore.Qt.QueuedConnection)
 
         # FRIENDS
         self.ui.pushButton_update_friends.clicked.connect(self.on_start_friends)
         #self.ui.pushButton_update_friends.clicked.connect(self.on_stop_friends)
         self.ui.comboBox_friends.activated.connect(self.open_table_friends)
-        self.ui.comboBox_friends.addItems(self.get_items_combobox_friends())
-        self.check_friends_thread.list_all_friends.connect(self.get_table_friends, QtCore.Qt.QueuedConnection)
+        self.ui.comboBox_friends.addItems(self.get_items_combobox('all_friends'))
+        self.check_friends_thread.list_all_friends.connect(self.get_tables, QtCore.Qt.QueuedConnection)
         # self.check_friends_thread.message_toolbar_friends.connect(self.on_change_check_friends, QtCore.Qt.QueuedConnection)
         self.ui.tableWidget_friends.itemDoubleClicked.connect(self.listwidgetclicked) # добавить проверку по строкам
 
         # MATCHES
-        #self.ui.pushButton_update_matches.clicked.connect(self.update_users_names)
         self.ui.comboBox_matches.addItems(self.get_items_combobox_matches()) # заполняю даты матчей в список
         self.ui.comboBox_matches.activated.connect(self.get_info_match)
 
@@ -114,8 +113,8 @@ class MyWin(QtWidgets.QMainWindow):
         self.ui.pushButton_update_bans_start.clicked.connect(self.on_start_vacs)
         self.ui.pushButton_update_bans_stop.clicked.connect(self.on_stop_vacs)
         self.ui.comboBox_bans.activated.connect(self.open_table_bans)
-        self.ui.comboBox_bans.addItems(self.get_items_combobox_bans())
-        self.check_vac_thread.list_all_users.connect(self.get_table_bans, QtCore.Qt.QueuedConnection)
+        self.ui.comboBox_bans.addItems(self.get_items_combobox('all_bans'))
+        self.check_vac_thread.list_all_users.connect(self.get_tables, QtCore.Qt.QueuedConnection)
         self.check_vac_thread.message_toolbar_bans.connect(self.on_change_check_vac, QtCore.Qt.QueuedConnection)
         self.check_vac_thread.int_for_progressbar_vac.connect(self.on_change_vac_rows, QtCore.Qt.QueuedConnection)
         self.ui.tableWidget_bans.itemDoubleClicked.connect(self.listwidgetclicked) # добавить проверку по строкам
@@ -145,42 +144,24 @@ class MyWin(QtWidgets.QMainWindow):
             self.url = f"https://steamcommunity.com/profiles/{item.text()}"
             webbrowser.open(self.url)
 
-    def get_items_combobox_weapons(self):
-        self.dir_path = 'all_weapons'
-        self.onlyfiles = sorted([self.f for self.f in listdir(f'date/{self.dir_path}/{self.steamid}/') if isfile(join(f'date/{self.dir_path}/{self.steamid}/', self.f))], reverse=True)
-        self.weapons_list_files = []
-        for self.files_i in self.onlyfiles:
-            self.weapons_list_files.append(self.files_i.split('.')[0])
-        return self.weapons_list_files
-
-    def get_items_combobox_friends(self):
-        self.dir_path = 'all_friends'
-        self.onlyfiles = sorted([self.f for self.f in listdir(f'date/{self.dir_path}/{self.steamid}/') if isfile(join(f'date/{self.dir_path}/{self.steamid}/', self.f))], reverse=True)
-        self.friends_list_files = []
-        for self.files_i in self.onlyfiles:
-            self.friends_list_files.append(self.files_i.split('.')[0])
-        return self.friends_list_files
+    def get_items_combobox(self, string_w):
+        self.onlyfiles = sorted([self.f for self.f in listdir(f'date/{string_w}/{self.steamid}/') if isfile(join(f'date/{string_w}/{self.steamid}/', self.f))], reverse=True)
+        self.list_files = []
+        for self.files_i in self.onlyfiles:            
+            self.list_files.append(self.files_i.split('.')[0])
+        return self.list_files
 
     def get_items_combobox_matches(self):
-        self.file_allstats = 'all_stats/all_stats.json'
-        self.match_items_data = self.open_json_file(self.file_allstats)
+        self.match_items_data = self.open_json_file('all_stats/all_stats.json')
         self.match_items = []
-        for _ in range(len(self.match_items_data)):
+        for _, items in enumerate(self.match_items_data):
             self.match_items.append(str(_ + 1) + ") " + self.match_items_data[_]['date'] + ", map |" + self.match_items_data[_]['competitive'] + "|")
         return self.match_items
-
-    def get_items_combobox_bans(self):
-        self.dir_path = 'all_bans'
-        self.onlyfiles = sorted([self.f for self.f in listdir(f'date/{self.dir_path}/{self.steamid}/') if isfile(join(f'date/{self.dir_path}/{self.steamid}/', self.f))], reverse=True)
-        self.ban_list_files = []
-        for self.files_i in self.onlyfiles:            
-            self.ban_list_files.append(self.files_i.split('.')[0])
-        return self.ban_list_files
 
     def open_table_weapons(self):
         self.index_weapons = self.ui.comboBox_weapons.currentIndex()
         self.ui.tableWidget_weapons.clear()
-        self.date_weapons = self.open_json_file(f'date/all_weapons/{steamid}/{self.weapons_list_files[self.index_weapons]}.json')
+        self.date_weapons = self.open_json_file(f'date/all_weapons/{steamid}/{self.get_items_combobox("all_weapons")[self.index_weapons]}.json')
         self.ui.tableWidget_weapons.setColumnCount(len(self.date_weapons[0]))
         self.ui.tableWidget_weapons.setRowCount(len(self.date_weapons))
         self.ui.tableWidget_weapons.setSortingEnabled(True)
@@ -217,7 +198,7 @@ class MyWin(QtWidgets.QMainWindow):
     def open_table_friends(self):
         self.index_friends = self.ui.comboBox_friends.currentIndex()
         self.ui.tableWidget_friends.clear()
-        self.friend_info = self.open_json_file(f'date/all_friends/{steamid}/{self.friends_list_files[self.index_friends]}.json')
+        self.friend_info = self.open_json_file(f'date/all_friends/{steamid}/{self.get_items_combobox("all_friends")[self.index_friends]}.json')
         self.ui.tableWidget_friends.setColumnCount(len(self.friend_info[0]))
         self.ui.tableWidget_friends.setRowCount(len(self.friend_info))
         self.ui.tableWidget_friends.setSortingEnabled(True)
@@ -250,27 +231,16 @@ class MyWin(QtWidgets.QMainWindow):
         self.ui.tableWidget_friends.resizeColumnsToContents()
         
 
-    def get_table_bans(self, list_vacs):
-        with open(f'date/all_bans/{steamid}/{self.today_date}.json', 'w', encoding='utf-8') as self.file_all_bans:
-            json.dump(list_vacs, self.file_all_bans, ensure_ascii=False, indent=4)
-            self.file_all_bans.close()
-
-    def get_table_weapons(self, list_weapons):
-        # add check status profile
-        with open(f'date/all_weapons/{steamid}/{self.today_date}.json', 'w', encoding='utf-8') as self.file_all_weapons:
-            json.dump(list_weapons, self.file_all_weapons, ensure_ascii=False, indent=4)
-            self.file_all_weapons.close()
-
-    def get_table_friends(self, list_friends):
-        # add check status profile     
-        with open(f'date/all_friends/{steamid}/{self.today_date}.json', 'w', encoding='utf-8') as self.file_all_friends:
-            json.dump(list_friends, self.file_all_friends, ensure_ascii=False, indent=4)
-            self.file_all_friends.close()
+    def get_tables(self, list_s, strings):
+        # strings = 'all_bans', 'all_weapons', 'all_friends'
+        with open(f'date/{strings}/{steamid}/{self.today_date}.json', 'w', encoding='utf-8') as self.file_all:
+            return json.dump(list_s, self.file_all, ensure_ascii=False, indent=4)
 
     def open_table_bans(self):
         self.index = self.ui.comboBox_bans.currentIndex()
         self.ui.tableWidget_bans.clear()
-        all_users = self.open_json_file(f'date/all_bans/{steamid}/{self.ban_list_files[self.index]}.json')
+        self.steamid = steamid
+        all_users = self.open_json_file(f'date/all_bans/{self.steamid}/{self.get_items_combobox("all_bans")[self.index]}.json')
         self.ui.tableWidget_bans.setColumnCount(len(all_users[0]))
         self.ui.tableWidget_bans.setRowCount(len(all_users))
         self.ui.tableWidget_bans.setSortingEnabled(True)
@@ -295,22 +265,6 @@ class MyWin(QtWidgets.QMainWindow):
         self.ui.tableWidget_bans.setGridStyle(1)
         self.ui.tableWidget_bans.resizeColumnsToContents()
         return
-
-    def update_users_names(self):
-        # добавить информацию в файл all_stats.json после добавления нового матча с /gcpd/730/?tab=matchhistorycompetitive
-        self.file_match_users = 'all_stats/all_stats.json'
-        self.date_match_users = self.open_json_file(self.file_match_users)
-        self.index_match = self.ui.comboBox_matches.currentIndex()
-        self.list_steamids, self.list_player_files, self.date_name_users = [], [], []
-        for _ in range(len(self.date_match_users[str(self.index_match)]['team' + str(self.index_match)]) - 1):
-            self.ui.progressBar_bans.setMaximum(len(self.date_match_users[str(self.index_match)]['team' + str(self.index_match)]) - 1)
-            self.ui.progressBar_bans.setProperty("value", _)
-            self.list_steamids.append(self.date_match_users[str(self.index_match)]['team' + str(self.index_match)][_ + 1]['steamid64'])
-            self.list_player_files.append(f'date/{self.list_steamids[_]}/{self.list_steamids[_]}_profile_info_{self.today_date}.json')
-            self.date_name_users.append(self.open_json_file(self.list_player_files[_], self.list_player_files[_])['response']['players'][0]['personaname'])
-            self.date_match_users[str(self.index_match)]['team' + str(self.index_match)][_ + 1]['player_name'][0] = self.date_name_users[_]
-        
-        self.write_json_file(self.date_match_users, self.file_match_users)
 
     def get_profile_check(self, steamid):
         self.steamid = steamid
@@ -1608,7 +1562,7 @@ class CheckMatchesThread(QtCore.QThread, MyWin):
     '''
 
 class CheckVacThread(QtCore.QThread, MyWin):
-    list_all_users = QtCore.pyqtSignal(list)
+    list_all_users = QtCore.pyqtSignal(list, str)
     message_toolbar_bans = QtCore.pyqtSignal(str)
     int_for_progressbar_vac = QtCore.pyqtSignal(int, int)
 
