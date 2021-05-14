@@ -231,9 +231,11 @@ class MyWin(QtWidgets.QMainWindow):
         self.ui.tableWidget_friends.resizeColumnsToContents()
         
 
-    def get_tables(self, list_s, strings):
-        # strings = 'all_bans', 'all_weapons', 'all_friends'
-        with open(f'date/{strings}/{steamid}/{self.today_date}.json', 'w', encoding='utf-8') as self.file_all:
+    def get_tables(self, list_s):
+        self.steamid = steamid
+        # TODO Пофиксить проблему с разделением вывода таблиц по оружию, друзьям и банам.
+        strings = 'all_bans' #, 'all_weapons', 'all_friends'
+        with open(f'date/{strings}/{self.steamid}/{self.today_date}.json', 'w', encoding='utf-8') as self.file_all:
             return json.dump(list_s, self.file_all, ensure_ascii=False, indent=4)
 
     def open_table_bans(self):
@@ -1447,7 +1449,7 @@ class CheckMatchesThread(QtCore.QThread, MyWin):
     pass    
 
 class CheckVacThread(QtCore.QThread, MyWin):
-    list_all_users = QtCore.pyqtSignal(list, str)
+    list_all_users = QtCore.pyqtSignal(list)
     message_toolbar_bans = QtCore.pyqtSignal(str)
     int_for_progressbar_vac = QtCore.pyqtSignal(int, int)
 
@@ -1499,7 +1501,7 @@ class CheckVacThread(QtCore.QThread, MyWin):
             
             self._ += 1
             if self._ == len(self.all_users):
-                self.list_all_users.emit(self.tmp_all_users)
+                self.list_all_users.emit(self.tmp_all_users, )
                 break
 
     def check_vac_banned(self, steamid):
