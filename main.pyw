@@ -645,8 +645,12 @@ class MyWin(QtWidgets.QMainWindow):
             self.ui.label_avatar.setPixmap(
                 QPixmap(f'date/{self.steamid}/{self.steamid}'
                         f'_avatarfull_{self.today_date}.jpg'))
-            self.ui.label_personaname.setText(self.profile_data_json['response']['players'][0]['personaname'] + ' (Приватный профиль)')
+            self.ui.label_personaname.setText(
+                self.profile_data_json
+                ['response']['players'][0]
+                ['personaname'] + ' (Приватный профиль)')
             return
+
         elif self.communityvisibilitystate == 3:
             self.statusBar().showMessage(
                 '3 - the profile is "Public", and the data is visible')
@@ -669,15 +673,18 @@ class MyWin(QtWidgets.QMainWindow):
                 QPixmap(f'date/{self.steamid}/{self.steamid}'
                         f'_avatarfull_{self.today_date}.jpg'))
             self.ui.label_personaname.setText(
-                self.profile_data_json['response']['players'][0]['personaname'] + self.online_status)
+                self.profile_data_json
+                ['response']['players'][0]['personaname'] + self.online_status)
 
             try:
                 self.ui.label_realname.setText(
-                    self.profile_data_json['response']['players'][0]['realname'])
+                    self.profile_data_json
+                    ['response']['players'][0]['realname'])
             except KeyError:
                 self.ui.label_realname.setText('██████████')
 
-            self.ui.label_profileurl.setText(self.profile_data_json['response']['players'][0]['profileurl'])            
+            self.ui.label_profileurl.setText(
+                self.profile_data_json['response']['players'][0]['profileurl'])
             self.get_country_info(self.steamid)
             return self.profile_data_json
 
@@ -726,7 +733,6 @@ class MyWin(QtWidgets.QMainWindow):
             self.write_json_file(self.req_profile, self.load_from_file)
             self.profile_data_json = self.open_json_file(self.load_from_file)
 
-
         try:
             self.loccountrycode = (
                 self.profile_data_json
@@ -750,25 +756,37 @@ class MyWin(QtWidgets.QMainWindow):
 
         try:
             self.req_profile = requests.get(self.url_profile_info).json()
-            self.locstatecode = self.req_profile['response']['players'][0]['locstatecode']
-            self.location_url_2 = f'https://steamcommunity.com/actions/QueryLocations/{self.loccountrycode}/'
+            self.locstatecode = (
+                self.req_profile['response']['players'][0]['locstatecode'])
+            self.location_url_2 = (
+                'https://steamcommunity.com/actions/QueryLocations/'
+                f'{self.loccountrycode}/')
             self.location_req_2 = requests.get(self.location_url_2).json()
-            self.write_json_file(self.location_req_2, self.load_location_from_file_2)
-            self.location_file_2 = self.open_json_file(self.load_location_from_file_2) 
+            self.write_json_file(
+                self.location_req_2,
+                self.load_location_from_file_2)
+            self.location_file_2 = self.open_json_file(
+                self.load_location_from_file_2)
             for _ in self.location_file_2:
                 if _['statecode'] == self.locstatecode:
                     self.text_location += _['statename'] + ', '
         except KeyError:
-            self.text_location +=  '██████████'
+            self.text_location += '██████████'
             self.ui.label_loccountrycode.setText(self.text_location)
             return self.text_location
-        
+
         try:
-            self.loccityid = self.req_profile['response']['players'][0]['loccityid']
-            self.location_url_3 = f'https://steamcommunity.com/actions/QueryLocations/{self.loccountrycode}/{self.locstatecode}'
+            self.loccityid = (
+                self.req_profile['response']['players'][0]['loccityid'])
+            self.location_url_3 = (
+                'https://steamcommunity.com/actions/QueryLocations/'
+                f'{self.loccountrycode}/{self.locstatecode}')
             self.location_req_3 = requests.get(self.location_url_3).json()
-            self.write_json_file(self.location_req_3, self.load_location_from_file_3)
-            self.location_file_3 = self.open_json_file(self.load_location_from_file_3) 
+            self.write_json_file(
+                self.location_req_3,
+                self.load_location_from_file_3)
+            self.location_file_3 = self.open_json_file(
+                self.load_location_from_file_3)
             for _ in self.location_file_3:
                 if _['cityid'] == self.loccityid:
                     self.text_location += _['cityname']
@@ -777,15 +795,18 @@ class MyWin(QtWidgets.QMainWindow):
         except KeyError:
             self.text_location += '██████████'
             self.ui.label_loccountrycode.setText(self.text_location)
-            #return self.text_location
 
         # OpenFromFiles on Disc
-        self.profile_data_json = self.open_json_file(self.load_from_file) 
+        self.profile_data_json = self.open_json_file(
+            self.load_from_file)
         self.text_location = ''
 
         try:
-            self.loccountrycode = self.profile_data_json['response']['players'][0]['loccountrycode']
-            self.location_file_1 = self.open_json_file(self.load_location_from_file_1)
+            self.loccountrycode = (
+                self.profile_data_json
+                ['response']['players'][0]['loccountrycode'])
+            self.location_file_1 = self.open_json_file(
+                self.load_location_from_file_1)
             for _ in self.location_file_1:
                 if _['countrycode'] == self.loccountrycode:
                     self.text_location += _['countryname'] + ', '
@@ -795,8 +816,11 @@ class MyWin(QtWidgets.QMainWindow):
             return self.text_location
 
         try:
-            self.locstatecode = self.profile_data_json['response']['players'][0]['locstatecode']
-            self.location_file_2 = self.open_json_file(self.load_location_from_file_2)
+            self.locstatecode = (
+                self.profile_data_json
+                ['response']['players'][0]['locstatecode'])
+            self.location_file_2 = self.open_json_file(
+                self.load_location_from_file_2)
             for _ in self.location_file_2:
                 if _['statecode'] == self.locstatecode:
                     self.text_location += _['statename'] + ', '
@@ -1670,9 +1694,12 @@ class CheckVacThread(QtCore.QThread, MyWin):
             open(f'date/{self.steamid}/{self.steamid}_profile_info_{self.today_date}.json', 'r')
         except FileNotFoundError:
             self.req_profile_info = requests.get(self.url_profile_info).json()
-            self.write_json_file(self.req_profile_info, self.steamid_profile_json)                     
-            #  communityvisibilitystate 1 - the profile is not visible to you (Private, Friends Only, etc),
-            #  communityvisibilitystate 3 - the profile is "Public", and the data is visible.
+            self.write_json_file(self.req_profile_info, self.steamid_profile_json)
+            # communityvisibilitystate 1
+            # - the profile is not visible to 
+            # you (Private, Friends Only, etc),
+            # communityvisibilitystate 3
+            #  - the profile is "Public", and the data is visible.
             if self.req_profile_info['response']['players'] == []:
                 self.write_json_file('deleted', f'date/deleted_/{self.steamid}_deleted_profile_info_{self.today_date}.json') 
                 return 0
@@ -1682,14 +1709,13 @@ class CheckVacThread(QtCore.QThread, MyWin):
             elif self.req_profile_info['response']['players'][0][CVS] == 3:
                 self.write_json_file(self.req_profile_info, self.steamid_profile_json)
                 return self.open_json_file(self.steamid_profile_json)
-        
+
         if os.path.exists(f'date/{self.steamid}/{self.steamid}_profile_info_{self.today_date}.json'):
             return self.open_json_file(self.steamid_profile_json) 
 
 
 if __name__ == "__main__":
     app = QtWidgets.QApplication(sys.argv)
-    #app.setStyleSheet(open('Combinear.qss', 'r').read())
     myapp = MyWin()
     myapp.show()
     sys.exit(app.exec_())
