@@ -1,7 +1,6 @@
 from datetime import date
 
-from codes import keys
-
+from res.codes import keys
 
 TEXT_NOT_FOUND = '''
             Извините!\n
