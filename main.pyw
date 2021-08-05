@@ -1,14 +1,13 @@
-# from operator import itemgetter
 import json
+import sys
 import os
 from os.path import isfile, join
-import sys
 from datetime import date
 from os import listdir
 from datetime import datetime, timedelta
 from PyQt5 import QtWidgets, QtCore
 from res.mainwindows import Ui_MainWindow
-from PyQt5.QtWidgets import QTableWidgetItem, QHeaderView
+from PyQt5.QtWidgets import QTableWidgetItem
 from res.codes import keys
 from PyQt5.QtGui import QImage, QPixmap
 import webbrowser
@@ -24,22 +23,39 @@ NO_INFO_USERS = '''
             Пользователь скрыл информацию, \n
             профиль является приватным.'''
 
-steamid = keys['steamid']
-key = keys['key']
-steamidkey = keys['steamidkey']
+STEAMID = keys['steamid']
+KEY = keys['key']
 KEY_STEAMID = '99999999999999999;XXXXXXXXXXXXXXXXX'
 CVS = 'communityvisibilitystate'
 
+GPS = (
+    'https://api.steampowered.com/ISteamUser/'
+    f'GetPlayerSummaries/v2/?key={KEY}&steamids='
+)
+
+GUSFG = (
+    'https://api.steampowered.com/ISteamUserStats/'
+    'GetUserStatsForGame/v0002/'
+    f'?appid=730&key={KEY}&steamid='
+)
+
+GPB = (
+    'https://api.steampowered.com/ISteamUser/'
+    f'GetPlayerBans/v1/?key={KEY}&steamids='
+)
+
+DATE_FMT = '%b-%d-%Y'
+TODAY = date.today()  # ! .strftime(DATE_FMT)
+UTF8 = 'utf-8'
+
 
 class MyWin(QtWidgets.QMainWindow):
+    """Main Window for application csstats."""
 
     def __init__(self, parent=None):
         QtWidgets.QWidget.__init__(self, parent)
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
-        self.steamid = steamid
-        self.today = date.today()
-        self.today_date = self.today.strftime("%b-%d-%Y")
         self.pixmap_rank = QPixmap('img/ranks/skillgroup0.png')
         self.ui.label_rank.setPixmap(self.pixmap_rank)
         self.ui.lineEdit_steamidfind.setInputMask(KEY_STEAMID)
@@ -52,15 +68,15 @@ class MyWin(QtWidgets.QMainWindow):
         self.ui.pushButton_my_profile.clicked.connect(self.open_my_profile)
 
         # STATS
-        self.get_info_profile(self.steamid)
+        self.get_info_profile(STEAMID)
         if (
-            self.get_info_profile(self.steamid)
+            self.get_info_profile(STEAMID)
             ['response']['players'][0][CVS] == 1
         ):
             for i in range(1, 4):
                 self.ui.tabWidget.setTabEnabled(i, False)
         elif (
-            self.get_info_profile(self.steamid)
+            self.get_info_profile(STEAMID)
             ['response']['players'][0][CVS] == 3
         ):
             for i in range(1, 4):
@@ -68,7 +84,7 @@ class MyWin(QtWidgets.QMainWindow):
 
         self.ui.pushButton_update_stat.clicked.connect(self.get_statistics)
         self.ui.textBrowser_info.setText(
-            self.get_table_statistics(self.steamid))
+            self.get_table_statistics(STEAMID))
 
         # WEAPONS
         self.ui.pushButton_update_weapons.clicked.connect(
@@ -116,10 +132,9 @@ class MyWin(QtWidgets.QMainWindow):
         self.ui.pushButton_update_stat.setEnabled(True)
         self.pixmap_rank = QPixmap('img/ranks/skillgroup1.png')
         self.ui.label_rank.setPixmap(self.pixmap_rank)
-        self.steamid = steamid
-        self.get_info_profile(self.steamid)
+        self.get_info_profile(STEAMID)
         self.ui.textBrowser_info.setText(
-            self.get_table_statistics(self.steamid))
+            self.get_table_statistics(STEAMID))
 
     def listwidgetclicked(self, item) -> str:
         try:
@@ -134,11 +149,12 @@ class MyWin(QtWidgets.QMainWindow):
         return webbrowser.open(self.url)
 
     def get_items_combobox(self, string_w):
-        self.onlyfiles = sorted(
-            [self.f for self.f in listdir(
-                f'date/{string_w}/{self.steamid}/'
-                ) if isfile(join(f'date/{string_w}/{self.steamid}/',
-                self.f))], reverse=True)
+        self.onlyfiles = sorted([
+            self.f for self.f in listdir(
+                    f'date/{string_w}/{STEAMID}/'
+            ) if isfile(join(f'date/{string_w}/{STEAMID}/', self.f))
+        ], reverse=True)
+
         self.list_files = []
         for self.files_i in self.onlyfiles:
             self.list_files.append(self.files_i.split('.')[0])
@@ -155,11 +171,11 @@ class MyWin(QtWidgets.QMainWindow):
         return self.match_items
 
     def open_table_weapons(self):
-        self.index_weapons = self.ui.comboBox_weapons.currentIndex()
+        index_match_weapons = self.ui.comboBox_weapons.currentIndex()
         self.ui.tableWidget_weapons.clear()
         self.date_weapons = self.open_json_file(
-            f'date/all_weapons/{steamid}/'
-            f'{self.get_items_combobox("all_weapons")[self.index_weapons]}'
+            f'date/all_weapons/{STEAMID}/'
+            f'{self.get_items_combobox("all_weapons")[index_match_weapons]}'
             '.json')
         self.ui.tableWidget_weapons.setColumnCount(len(self.date_weapons[0]))
         self.ui.tableWidget_weapons.setRowCount(len(self.date_weapons))
@@ -196,11 +212,14 @@ class MyWin(QtWidgets.QMainWindow):
         self.ui.tableWidget_weapons.resizeColumnsToContents()
 
     def open_table_friends(self):
-        self.index_friends = self.ui.comboBox_friends.currentIndex()
+        index_match_friends = self.ui.comboBox_friends.currentIndex()
         self.ui.tableWidget_friends.clear()
-        self.friend_info = self.open_json_file(f'date/all_friends/{steamid}/{self.get_items_combobox("all_friends")[self.index_friends]}.json')
-        self.ui.tableWidget_friends.setColumnCount(len(self.friend_info[0]))
-        self.ui.tableWidget_friends.setRowCount(len(self.friend_info))
+        friend_info = self.open_json_file(
+            f'date/all_friends/{STEAMID}/'
+            f'{self.get_items_combobox("all_friends")[index_match_friends]}'
+            f'.json')
+        self.ui.tableWidget_friends.setColumnCount(len(friend_info[0]))
+        self.ui.tableWidget_friends.setRowCount(len(friend_info))
         self.ui.tableWidget_friends.setSortingEnabled(True)
         self.ui.tableWidget_friends.setHorizontalHeaderLabels((
             'SteamID',
@@ -212,13 +231,13 @@ class MyWin(QtWidgets.QMainWindow):
             'Game Bans'))
 
         rows_list = []
-        for _ in range(len(self.friend_info)):
+        for _ in range(len(friend_info)):
             rows_list.append(str(_ + 1))
 
         self.ui.tableWidget_friends.setVerticalHeaderLabels(rows_list)
 
         row = 0
-        for tup in self.friend_info:
+        for tup in friend_info:
             col = 0
             for item in tup:
                 cellinfo = QTableWidgetItem(item)
@@ -232,11 +251,10 @@ class MyWin(QtWidgets.QMainWindow):
         self.ui.tableWidget_friends.resizeColumnsToContents()
 
     def get_tables(self, list_s):
-        self.steamid = steamid
         strings = 'all_bans'
         with open(
-            f'date/{strings}/{self.steamid}/{self.today_date}.json',
-            'w', encoding='utf-8'
+            f'date/{strings}/{STEAMID}/{TODAY}.json',
+            'w', encoding=UTF8
         ) as self.file_all:
             return json.dump(
                 list_s,
@@ -245,12 +263,11 @@ class MyWin(QtWidgets.QMainWindow):
                 indent=4)
 
     def open_table_bans(self):
-        self.index = self.ui.comboBox_bans.currentIndex()
+        index_match = self.ui.comboBox_bans.currentIndex()
         self.ui.tableWidget_bans.clear()
-        self.steamid = steamid
         all_users = self.open_json_file(
-            f'date/all_bans/{self.steamid}/'
-            f'{self.get_items_combobox("all_bans")[self.index]}'
+            f'date/all_bans/{STEAMID}/'
+            f'{self.get_items_combobox("all_bans")[index_match]}'
             '.json')
         self.ui.tableWidget_bans.setColumnCount(len(all_users[0]))
         self.ui.tableWidget_bans.setRowCount(len(all_users))
@@ -287,15 +304,12 @@ class MyWin(QtWidgets.QMainWindow):
         self.ui.tableWidget_bans.resizeColumnsToContents()
         return
 
-    def get_profile_check(self, steamid):
-        self.steamid = steamid
-        self.steamid_profile_json = (
-            f'date/{self.steamid}/{self.steamid}'
-            f'_profile_info_{self.today_date}.json')
-        self.url_profile_info = (
-            'https://api.steampowered.com/ISteamUser/GetPlayerSummaries'
-            f'/v2/?key={key}&steamids={self.steamid}')
-        self.directory = f"{self.steamid}"
+    def get_profile_check(self, STEAMID):
+        steamid_profile_json = (
+            f'date/{STEAMID}/{STEAMID}'
+            f'_profile_info_{TODAY}.json')
+        url_pfile_inf = f'{GPS}{STEAMID}'
+        self.directory = f"{STEAMID}"
         self.parent_dir = "date\\"
         self.path = os.path.join(
             self.parent_dir,
@@ -307,19 +321,19 @@ class MyWin(QtWidgets.QMainWindow):
 
         try:
             open(
-                f'date/{self.steamid}/{self.steamid}'
-                '_profile_info_{self.today_date}.json',
+                f'date/{STEAMID}/{STEAMID}'
+                '_profile_info_{TODAY}.json',
                 'r')
         except FileNotFoundError:
-            self.req_profile_info = requests.get(self.url_profile_info).json()
+            self.req_profile_info = requests.get(url_pfile_inf).json()
             self.write_json_file(
                 self.req_profile_info,
-                self.steamid_profile_json)
+                steamid_profile_json)
             if self.req_profile_info['response']['players'] == []:
                 self.write_json_file(
                     'deleted',
-                    f'date/deleted_/{self.steamid}'
-                    f'_deleted_profile_info_{self.today_date}.json')
+                    f'date/deleted_/{STEAMID}'
+                    f'_deleted_profile_info_{TODAY}.json')
                 return 0
             # 1 - the profile is not visible to you
             # (Private, Friends Only, etc),
@@ -329,126 +343,126 @@ class MyWin(QtWidgets.QMainWindow):
             if self.req_profile_info['response']['players'][0][CVS] == 1:
                 self.write_json_file(
                     self.req_profile_info,
-                    self.steamid_profile_json)
+                    steamid_profile_json)
                 return self.open_json_file(
-                    self.steamid_profile_json)
+                    steamid_profile_json)
             elif self.req_profile_info['response']['players'][0][CVS] == 3:
                 self.write_json_file(
                     self.req_profile_info,
-                    self.steamid_profile_json)
-                return self.open_json_file(self.steamid_profile_json)
+                    steamid_profile_json)
+                return self.open_json_file(steamid_profile_json)
 
         if os.path.exists(
-            f'date/{self.steamid}/{self.steamid}'
-            f'_profile_info_{self.today_date}.json'
+            f'date/{STEAMID}/{STEAMID}'
+            f'_profile_info_{TODAY}.json'
         ):
-            return self.open_json_file(self.steamid_profile_json)
+            return self.open_json_file(steamid_profile_json)
 
     # Add thread GetInfoBanThread
     def get_info_match(self):
-        self.file_all_mathes = 'all_stats/all_stats.json'
-        self.date_match = self.open_json_file(self.file_all_mathes)
-        self.index = self.ui.comboBox_matches.currentIndex()
+        file_mathes = 'all_stats/all_stats.json'
+        date_match = self.open_json_file(file_mathes)
+        index_match = self.ui.comboBox_matches.currentIndex()
 
         self.competitive = (
-            'Карта ' + self.date_match[self.index]['competitive']
+            'Карта ' + date_match[index_match]['competitive']
             )
         self.date = (
-            'Дата ' + self.date_match[self.index]['date']
+            'Дата ' + date_match[index_match]['date']
             )
         self.waittime = (
-            'Время ожидания ' + self.date_match[self.index]['wait_time']
+            'Время ожидания ' + date_match[index_match]['wait_time']
             )
         self.matchduration = (
-            'Время игры ' + self.date_match[self.index]['match_duration']
+            'Время игры ' + date_match[index_match]['match_duration']
             )
-        self.score = 'Счет ' + self.date_match[self.index]['score']
-        self.score_center = self.date_match[self.index]['score']
+        self.score = 'Счет ' + date_match[index_match]['score']
+        self.score_center = date_match[index_match]['score']
 
         # FIX add all maps
-        if self.date_match[self.index]['competitive'] == 'de_engage':
+        if date_match[index_match]['competitive'] == 'de_engage':
             pixmap = QPixmap('img/imgs_maps/de_engage.jpg')
             self.ui.label_image_map.setPixmap(pixmap)
-        elif self.date_match[self.index]['competitive'] == 'Dust II':
+        elif date_match[index_match]['competitive'] == 'Dust II':
             pixmap = QPixmap('img/imgs_maps/de_dust_2.jpg')
             self.ui.label_image_map.setPixmap(pixmap)
-        elif self.date_match[self.index]['competitive'] == 'cs_office':
+        elif date_match[index_match]['competitive'] == 'cs_office':
             pixmap = QPixmap('img/imgs_maps/cs_office.jpg')
             self.ui.label_image_map.setPixmap(pixmap)
-        elif self.date_match[self.index]['competitive'] == 'Inferno':
+        elif date_match[index_match]['competitive'] == 'Inferno':
             pixmap = QPixmap('img/imgs_maps/de_inferno.jpg')
             self.ui.label_image_map.setPixmap(pixmap)
-        elif self.date_match[self.index]['competitive'] == 'Mirage':
+        elif date_match[index_match]['competitive'] == 'Mirage':
             pixmap = QPixmap('img/imgs_maps/de_mirage.jpg')
             self.ui.label_image_map.setPixmap(pixmap)
-        elif self.date_match[self.index]['competitive'] == 'de_vertigo':
+        elif date_match[index_match]['competitive'] == 'de_vertigo':
             pixmap = QPixmap('img/imgs_maps/de_vertigo.jpg')
             self.ui.label_image_map.setPixmap(pixmap)
-        elif self.date_match[self.index]['competitive'] == 'de_train':
+        elif date_match[index_match]['competitive'] == 'de_train':
             pixmap = QPixmap('img/imgs_maps/de_train.jpg')
             self.ui.label_image_map.setPixmap(pixmap)
-        elif self.date_match[self.index]['competitive'] == 'de_ancient':
+        elif date_match[index_match]['competitive'] == 'de_ancient':
             pixmap = QPixmap('img/imgs_maps/de_ancient.jpg')
             self.ui.label_image_map.setPixmap(pixmap)
-        elif self.date_match[self.index]['competitive'] == 'Cache':
+        elif date_match[index_match]['competitive'] == 'Cache':
             pixmap = QPixmap('img/imgs_maps/de_cache.jpg')
             self.ui.label_image_map.setPixmap(pixmap)
-        elif self.date_match[self.index]['competitive'] == 'cs_apollo':
+        elif date_match[index_match]['competitive'] == 'cs_apollo':
             pixmap = QPixmap('img/imgs_maps/cs_apollo.jpg')
             self.ui.label_image_map.setPixmap(pixmap)
-        elif self.date_match[self.index]['competitive'] == 'Overpass':
+        elif date_match[index_match]['competitive'] == 'Overpass':
             pixmap = QPixmap('img/imgs_maps/de_overpass.jpg')
             self.ui.label_image_map.setPixmap(pixmap)
-        elif self.date_match[self.index]['competitive'] == 'Nuke':
+        elif date_match[index_match]['competitive'] == 'Nuke':
             pixmap = QPixmap('img/imgs_maps/de_nuke.jpg')
             self.ui.label_image_map.setPixmap(pixmap)
-        elif self.date_match[self.index]['competitive'] == 'Train':
+        elif date_match[index_match]['competitive'] == 'Train':
             pixmap = QPixmap('img/imgs_maps/de_train.jpg')
             self.ui.label_image_map.setPixmap(pixmap)
         else:
             pixmap = QPixmap('img/imgs_maps/nomap.jpg')
             self.ui.label_image_map.setPixmap(pixmap)
 
-        self.steamid_i = []
-        self.name_i = []
-        self.player_name_i = []
-        self.vac_status = []
-        for self._ in range(10):
+        steamid_i = []
+        name_i = []
+        player_name_i = []
+        vac_status = []
+        for val in range(10):
             self.ui.progressBar_bans.setMaximum(9)
-            self.ui.progressBar_bans.setProperty("value", self._)
-            self.steamid_i.append(
-                self.date_match[self.index]['team'][self._]['steamid64'])
-            self.name_i.append(
+            self.ui.progressBar_bans.setProperty("value", val)
+            steamid_i.append(
+                date_match[index_match]['team'][val]['steamid64'])
+            name_i.append(
                 self.get_profile_check(
-                    self.steamid_i[self._]
+                    steamid_i[val]
                     )['response']['players'][0]['personaname'])
-            create_avatar(self.steamid_i[self._])
-            self.vac_status.append(
+            create_avatar(steamid_i[val])
+            vac_status.append(
                 self.check_vac_thread.check_vac_banned(
-                    self.steamid_i[self._])['players'][0]['VACBanned'])
-            self.player_name_i.append(
-                self.date_match[self.index]['team'][self._]['player_name'])
+                    steamid_i[val])['players'][0]['VACBanned'])
+            player_name_i.append(
+                date_match[index_match]['team'][val]['player_name'])
 
         self.ui.label_vac_status_1.setText(
-            'Забанен VAC' if self.vac_status[0] else 'Банов нет')
+            'Забанен VAC' if vac_status[0] else 'Банов нет')
         self.ui.label_vac_status_2.setText(
-            'Забанен VAC' if self.vac_status[1] else 'Банов нет')
+            'Забанен VAC' if vac_status[1] else 'Банов нет')
         self.ui.label_vac_status_3.setText(
-            'Забанен VAC' if self.vac_status[2] else 'Банов нет')
+            'Забанен VAC' if vac_status[2] else 'Банов нет')
         self.ui.label_vac_status_4.setText(
-            'Забанен VAC' if self.vac_status[3] else 'Банов нет')
+            'Забанен VAC' if vac_status[3] else 'Банов нет')
         self.ui.label_vac_status_5.setText(
-            'Забанен VAC' if self.vac_status[4] else 'Банов нет')
+            'Забанен VAC' if vac_status[4] else 'Банов нет')
         self.ui.label_vac_status_6.setText(
-            'Забанен VAC' if self.vac_status[5] else 'Банов нет')
+            'Забанен VAC' if vac_status[5] else 'Банов нет')
         self.ui.label_vac_status_7.setText(
-            'Забанен VAC' if self.vac_status[6] else 'Банов нет')
+            'Забанен VAC' if vac_status[6] else 'Банов нет')
         self.ui.label_vac_status_8.setText(
-            'Забанен VAC' if self.vac_status[7] else 'Банов нет')
+            'Забанен VAC' if vac_status[7] else 'Банов нет')
         self.ui.label_vac_status_9.setText(
-            'Забанен VAC' if self.vac_status[8] else 'Банов нет')
+            'Забанен VAC' if vac_status[8] else 'Банов нет')
         self.ui.label_vac_status_10.setText(
-            'Забанен VAC' if self.vac_status[9] else 'Банов нет')
+            'Забанен VAC' if vac_status[9] else 'Банов нет')
 
         self.ui.label_competitive.setText(self.competitive)
         self.ui.label_date.setText(self.date)
@@ -478,139 +492,135 @@ class MyWin(QtWidgets.QMainWindow):
         self.ui.label_csore_center.setText(self.score_center)
 
         self.ui.label_playername1_avatar.setPixmap(
-            QPixmap(f'date/{self.steamid_i[0]}/{self.steamid_i[0]}'
-                    f'_avatarmedium_{self.today_date}.jpg'))
+            QPixmap(f'date/{steamid_i[0]}/{steamid_i[0]}'
+                    f'_avatarmedium_{TODAY}.jpg'))
         self.ui.label_playername2_avatar.setPixmap(
-            QPixmap(f'date/{self.steamid_i[1]}/{self.steamid_i[1]}'
-                    f'_avatarmedium_{self.today_date}.jpg'))
+            QPixmap(f'date/{steamid_i[1]}/{steamid_i[1]}'
+                    f'_avatarmedium_{TODAY}.jpg'))
         self.ui.label_playername3_avatar.setPixmap(
-            QPixmap(f'date/{self.steamid_i[2]}/{self.steamid_i[2]}'
-                    f'_avatarmedium_{self.today_date}.jpg'))
+            QPixmap(f'date/{steamid_i[2]}/{steamid_i[2]}'
+                    f'_avatarmedium_{TODAY}.jpg'))
         self.ui.label_playername4_avatar.setPixmap(
-            QPixmap(f'date/{self.steamid_i[3]}/{self.steamid_i[3]}'
-                    f'_avatarmedium_{self.today_date}.jpg'))
+            QPixmap(f'date/{steamid_i[3]}/{steamid_i[3]}'
+                    f'_avatarmedium_{TODAY}.jpg'))
         self.ui.label_playername5_avatar.setPixmap(
-            QPixmap(f'date/{self.steamid_i[4]}/{self.steamid_i[4]}'
-                    f'_avatarmedium_{self.today_date}.jpg'))
+            QPixmap(f'date/{steamid_i[4]}/{steamid_i[4]}'
+                    f'_avatarmedium_{TODAY}.jpg'))
         self.ui.label_playername6_avatar.setPixmap(
-            QPixmap(f'date/{self.steamid_i[5]}/{self.steamid_i[5]}'
-                    f'_avatarmedium_{self.today_date}.jpg'))
+            QPixmap(f'date/{steamid_i[5]}/{steamid_i[5]}'
+                    f'_avatarmedium_{TODAY}.jpg'))
         self.ui.label_playername7_avatar.setPixmap(
-            QPixmap(f'date/{self.steamid_i[6]}/{self.steamid_i[6]}'
-                    f'_avatarmedium_{self.today_date}.jpg'))
+            QPixmap(f'date/{steamid_i[6]}/{steamid_i[6]}'
+                    f'_avatarmedium_{TODAY}.jpg'))
         self.ui.label_playername8_avatar.setPixmap(
-            QPixmap(f'date/{self.steamid_i[7]}/{self.steamid_i[7]}'
-                    f'_avatarmedium_{self.today_date}.jpg'))
+            QPixmap(f'date/{steamid_i[7]}/{steamid_i[7]}'
+                    f'_avatarmedium_{TODAY}.jpg'))
         self.ui.label_playername9_avatar.setPixmap(
-            QPixmap(f'date/{self.steamid_i[8]}/{self.steamid_i[8]}'
-                    f'_avatarmedium_{self.today_date}.jpg'))
+            QPixmap(f'date/{steamid_i[8]}/{steamid_i[8]}'
+                    f'_avatarmedium_{TODAY}.jpg'))
         self.ui.label_playername10_avatar.setPixmap(
-            QPixmap(f'date/{self.steamid_i[9]}/{self.steamid_i[9]}'
-                    f'_avatarmedium_{self.today_date}.jpg'))
+            QPixmap(f'date/{steamid_i[9]}/{steamid_i[9]}'
+                    f'_avatarmedium_{TODAY}.jpg'))
 
-        self.ui.label_playername1.setText(self.name_i[0])
-        self.ui.label_playername2.setText(self.name_i[1])
-        self.ui.label_playername3.setText(self.name_i[2])
-        self.ui.label_playername4.setText(self.name_i[3])
-        self.ui.label_playername5.setText(self.name_i[4])
-        self.ui.label_playername6.setText(self.name_i[5])
-        self.ui.label_playername7.setText(self.name_i[6])
-        self.ui.label_playername8.setText(self.name_i[7])
-        self.ui.label_playername9.setText(self.name_i[8])
-        self.ui.label_playername10.setText(self.name_i[9])
+        self.ui.label_playername1.setText(name_i[0])
+        self.ui.label_playername2.setText(name_i[1])
+        self.ui.label_playername3.setText(name_i[2])
+        self.ui.label_playername4.setText(name_i[3])
+        self.ui.label_playername5.setText(name_i[4])
+        self.ui.label_playername6.setText(name_i[5])
+        self.ui.label_playername7.setText(name_i[6])
+        self.ui.label_playername8.setText(name_i[7])
+        self.ui.label_playername9.setText(name_i[8])
+        self.ui.label_playername10.setText(name_i[9])
 
-        self.ui.label_pping1.setText(self.player_name_i[0][1][0])
-        self.ui.label_pping2.setText(self.player_name_i[1][1][0])
-        self.ui.label_pping3.setText(self.player_name_i[2][1][0])
-        self.ui.label_pping4.setText(self.player_name_i[3][1][0])
-        self.ui.label_pping5.setText(self.player_name_i[4][1][0])
-        self.ui.label_pping6.setText(self.player_name_i[5][1][0])
-        self.ui.label_pping7.setText(self.player_name_i[6][1][0])
-        self.ui.label_pping8.setText(self.player_name_i[7][1][0])
-        self.ui.label_pping9.setText(self.player_name_i[8][1][0])
-        self.ui.label_pping10.setText(self.player_name_i[9][1][0])
+        self.ui.label_pping1.setText(player_name_i[0][1][0])
+        self.ui.label_pping2.setText(player_name_i[1][1][0])
+        self.ui.label_pping3.setText(player_name_i[2][1][0])
+        self.ui.label_pping4.setText(player_name_i[3][1][0])
+        self.ui.label_pping5.setText(player_name_i[4][1][0])
+        self.ui.label_pping6.setText(player_name_i[5][1][0])
+        self.ui.label_pping7.setText(player_name_i[6][1][0])
+        self.ui.label_pping8.setText(player_name_i[7][1][0])
+        self.ui.label_pping9.setText(player_name_i[8][1][0])
+        self.ui.label_pping10.setText(player_name_i[9][1][0])
 
-        self.ui.label_kk1.setText(self.player_name_i[0][1][1])
-        self.ui.label_kk2.setText(self.player_name_i[1][1][1])
-        self.ui.label_kk3.setText(self.player_name_i[2][1][1])
-        self.ui.label_kk4.setText(self.player_name_i[3][1][1])
-        self.ui.label_kk5.setText(self.player_name_i[4][1][1])
-        self.ui.label_kk6.setText(self.player_name_i[5][1][1])
-        self.ui.label_kk7.setText(self.player_name_i[6][1][1])
-        self.ui.label_kk8.setText(self.player_name_i[7][1][1])
-        self.ui.label_kk9.setText(self.player_name_i[8][1][1])
-        self.ui.label_kk10.setText(self.player_name_i[9][1][1])
+        self.ui.label_kk1.setText(player_name_i[0][1][1])
+        self.ui.label_kk2.setText(player_name_i[1][1][1])
+        self.ui.label_kk3.setText(player_name_i[2][1][1])
+        self.ui.label_kk4.setText(player_name_i[3][1][1])
+        self.ui.label_kk5.setText(player_name_i[4][1][1])
+        self.ui.label_kk6.setText(player_name_i[5][1][1])
+        self.ui.label_kk7.setText(player_name_i[6][1][1])
+        self.ui.label_kk8.setText(player_name_i[7][1][1])
+        self.ui.label_kk9.setText(player_name_i[8][1][1])
+        self.ui.label_kk10.setText(player_name_i[9][1][1])
 
-        self.ui.label_aa1.setText(self.player_name_i[0][1][2])
-        self.ui.label_aa2.setText(self.player_name_i[1][1][2])
-        self.ui.label_aa3.setText(self.player_name_i[2][1][2])
-        self.ui.label_aa4.setText(self.player_name_i[3][1][2])
-        self.ui.label_aa5.setText(self.player_name_i[4][1][2])
-        self.ui.label_aa6.setText(self.player_name_i[5][1][2])
-        self.ui.label_aa7.setText(self.player_name_i[6][1][2])
-        self.ui.label_aa8.setText(self.player_name_i[7][1][2])
-        self.ui.label_aa9.setText(self.player_name_i[8][1][2])
-        self.ui.label_aa10.setText(self.player_name_i[9][1][2])
+        self.ui.label_aa1.setText(player_name_i[0][1][2])
+        self.ui.label_aa2.setText(player_name_i[1][1][2])
+        self.ui.label_aa3.setText(player_name_i[2][1][2])
+        self.ui.label_aa4.setText(player_name_i[3][1][2])
+        self.ui.label_aa5.setText(player_name_i[4][1][2])
+        self.ui.label_aa6.setText(player_name_i[5][1][2])
+        self.ui.label_aa7.setText(player_name_i[6][1][2])
+        self.ui.label_aa8.setText(player_name_i[7][1][2])
+        self.ui.label_aa9.setText(player_name_i[8][1][2])
+        self.ui.label_aa10.setText(player_name_i[9][1][2])
 
-        self.ui.label_dd1.setText(self.player_name_i[0][1][3])
-        self.ui.label_dd2.setText(self.player_name_i[1][1][3])
-        self.ui.label_dd3.setText(self.player_name_i[2][1][3])
-        self.ui.label_dd4.setText(self.player_name_i[3][1][3])
-        self.ui.label_dd5.setText(self.player_name_i[4][1][3])
-        self.ui.label_dd6.setText(self.player_name_i[5][1][3])
-        self.ui.label_dd7.setText(self.player_name_i[6][1][3])
-        self.ui.label_dd8.setText(self.player_name_i[7][1][3])
-        self.ui.label_dd9.setText(self.player_name_i[8][1][3])
-        self.ui.label_dd10.setText(self.player_name_i[9][1][3])
+        self.ui.label_dd1.setText(player_name_i[0][1][3])
+        self.ui.label_dd2.setText(player_name_i[1][1][3])
+        self.ui.label_dd3.setText(player_name_i[2][1][3])
+        self.ui.label_dd4.setText(player_name_i[3][1][3])
+        self.ui.label_dd5.setText(player_name_i[4][1][3])
+        self.ui.label_dd6.setText(player_name_i[5][1][3])
+        self.ui.label_dd7.setText(player_name_i[6][1][3])
+        self.ui.label_dd8.setText(player_name_i[7][1][3])
+        self.ui.label_dd9.setText(player_name_i[8][1][3])
+        self.ui.label_dd10.setText(player_name_i[9][1][3])
 
-        self.ui.label_mmvp1.setText(self.player_name_i[0][1][4])
-        self.ui.label_mmvp2.setText(self.player_name_i[1][1][4])
-        self.ui.label_mmvp3.setText(self.player_name_i[2][1][4])
-        self.ui.label_mmvp4.setText(self.player_name_i[3][1][4])
-        self.ui.label_mmvp5.setText(self.player_name_i[4][1][4])
-        self.ui.label_mmvp6.setText(self.player_name_i[5][1][4])
-        self.ui.label_mmvp7.setText(self.player_name_i[6][1][4])
-        self.ui.label_mmvp8.setText(self.player_name_i[7][1][4])
-        self.ui.label_mmvp9.setText(self.player_name_i[8][1][4])
-        self.ui.label_mmvp10.setText(self.player_name_i[9][1][4])
+        self.ui.label_mmvp1.setText(player_name_i[0][1][4])
+        self.ui.label_mmvp2.setText(player_name_i[1][1][4])
+        self.ui.label_mmvp3.setText(player_name_i[2][1][4])
+        self.ui.label_mmvp4.setText(player_name_i[3][1][4])
+        self.ui.label_mmvp5.setText(player_name_i[4][1][4])
+        self.ui.label_mmvp6.setText(player_name_i[5][1][4])
+        self.ui.label_mmvp7.setText(player_name_i[6][1][4])
+        self.ui.label_mmvp8.setText(player_name_i[7][1][4])
+        self.ui.label_mmvp9.setText(player_name_i[8][1][4])
+        self.ui.label_mmvp10.setText(player_name_i[9][1][4])
 
-        self.ui.label_hhsp1.setText(self.player_name_i[0][1][5])
-        self.ui.label_hhsp2.setText(self.player_name_i[1][1][5])
-        self.ui.label_hhsp3.setText(self.player_name_i[2][1][5])
-        self.ui.label_hhsp4.setText(self.player_name_i[3][1][5])
-        self.ui.label_hhsp5.setText(self.player_name_i[4][1][5])
-        self.ui.label_hhsp6.setText(self.player_name_i[5][1][5])
-        self.ui.label_hhsp7.setText(self.player_name_i[6][1][5])
-        self.ui.label_hhsp8.setText(self.player_name_i[7][1][5])
-        self.ui.label_hhsp9.setText(self.player_name_i[8][1][5])
-        self.ui.label_hhsp10.setText(self.player_name_i[9][1][5])
+        self.ui.label_hhsp1.setText(player_name_i[0][1][5])
+        self.ui.label_hhsp2.setText(player_name_i[1][1][5])
+        self.ui.label_hhsp3.setText(player_name_i[2][1][5])
+        self.ui.label_hhsp4.setText(player_name_i[3][1][5])
+        self.ui.label_hhsp5.setText(player_name_i[4][1][5])
+        self.ui.label_hhsp6.setText(player_name_i[5][1][5])
+        self.ui.label_hhsp7.setText(player_name_i[6][1][5])
+        self.ui.label_hhsp8.setText(player_name_i[7][1][5])
+        self.ui.label_hhsp9.setText(player_name_i[8][1][5])
+        self.ui.label_hhsp10.setText(player_name_i[9][1][5])
 
-        self.ui.label_sscore1.setText(self.player_name_i[0][1][6])
-        self.ui.label_sscore2.setText(self.player_name_i[1][1][6])
-        self.ui.label_sscore3.setText(self.player_name_i[2][1][6])
-        self.ui.label_sscore4.setText(self.player_name_i[3][1][6])
-        self.ui.label_sscore5.setText(self.player_name_i[4][1][6])
-        self.ui.label_sscore6.setText(self.player_name_i[5][1][6])
-        self.ui.label_sscore7.setText(self.player_name_i[6][1][6])
-        self.ui.label_sscore8.setText(self.player_name_i[7][1][6])
-        self.ui.label_sscore9.setText(self.player_name_i[8][1][6])
-        self.ui.label_sscore10.setText(self.player_name_i[9][1][6])
+        self.ui.label_sscore1.setText(player_name_i[0][1][6])
+        self.ui.label_sscore2.setText(player_name_i[1][1][6])
+        self.ui.label_sscore3.setText(player_name_i[2][1][6])
+        self.ui.label_sscore4.setText(player_name_i[3][1][6])
+        self.ui.label_sscore5.setText(player_name_i[4][1][6])
+        self.ui.label_sscore6.setText(player_name_i[5][1][6])
+        self.ui.label_sscore7.setText(player_name_i[6][1][6])
+        self.ui.label_sscore8.setText(player_name_i[7][1][6])
+        self.ui.label_sscore9.setText(player_name_i[8][1][6])
+        self.ui.label_sscore10.setText(player_name_i[9][1][6])
         return
 
     def get_statistics(self):
-        self.steamid = self.steamid
-        self.get_info_profile(self.steamid)
-        tmp_text_all = self.get_table_statistics(self.steamid)
+        self.get_info_profile(STEAMID)
+        tmp_text_all = self.get_table_statistics(STEAMID)
         self.ui.textBrowser_info.setText(tmp_text_all)
 
-    def get_info_profile(self, steamid):
-        self.steamid = steamid
-        self.url_profile_info = (
-            'https://api.steampowered.com/ISteamUser/'
-            f'GetPlayerSummaries/v2/?key={key}&steamids={self.steamid}')
-        self.check_profile(self.steamid)
+    def get_info_profile(self, STEAMID):
+        url_pfile_inf = f'{GPS}{STEAMID}'
+        self.check_profile(STEAMID)
 
-        self.directory = f'{self.steamid}'
+        self.directory = f'{STEAMID}'
         self.parent_dir = 'date\\'
         self.path = os.path.join(self.parent_dir, self.directory)
         try:
@@ -620,12 +630,12 @@ class MyWin(QtWidgets.QMainWindow):
 
         try:
             open(
-                f'date/{self.steamid}/{self.steamid}'
-                f'_profile_info_{self.today_date}.json', 'r'
+                f'date/{STEAMID}/{STEAMID}'
+                f'_profile_info_{TODAY}.json', 'r'
                 )
         except FileNotFoundError:
             self.req_profile_info = requests.get(
-                self.url_profile_info
+                url_pfile_inf
                 ).json()
             #  1 - the profile is not visible to you
             #  (Private, Friends Only, etc),
@@ -635,26 +645,26 @@ class MyWin(QtWidgets.QMainWindow):
                 self.statusBar().showMessage(
                     'The profile is not visible to you'
                     ' (Private, Friends Only, etc)')
-                self.steamid_profile_json = (
-                    f'date/{self.steamid}/{self.steamid}'
-                    f'_profile_info_{self.today_date}.json')
+                steamid_profile_json = (
+                    f'date/{STEAMID}/{STEAMID}'
+                    f'_profile_info_{TODAY}.json')
                 self.profile_data_json = self.write_json_file(
                     self.req_profile_info,
-                    self.steamid_profile_json)
+                    steamid_profile_json)
             elif self.req_profile_info['response']['players'][0][CVS] == 3:
                 self.statusBar().showMessage(
                     'The profile is "Public", and the data is visible')
-                self.steamid_profile_json = (
-                    f'date/{self.steamid}/{self.steamid}'
-                    f'_profile_info_{self.today_date}.json')
+                steamid_profile_json = (
+                    f'date/{STEAMID}/{STEAMID}'
+                    f'_profile_info_{TODAY}.json')
                 self.profile_data_json = self.write_json_file(
                     self.req_profile_info,
-                    self.steamid_profile_json)
+                    steamid_profile_json)
 
-        create_avatar(self.steamid)
+        create_avatar(STEAMID)
         self.steamidprofile_json = (
-            f'date/{self.steamid}/{self.steamid}'
-            f'_profile_info_{self.today_date}.json')
+            f'date/{STEAMID}/{STEAMID}'
+            f'_profile_info_{TODAY}.json')
         self.profile_data_json = self.open_json_file(self.steamidprofile_json)
 
         #  0 - Offline, 1 - Online,
@@ -678,13 +688,13 @@ class MyWin(QtWidgets.QMainWindow):
                 '1 - the profile is not visible to you'
                 ' (Private, Friends Only, etc)')
             self.ui.label_avatar.setPixmap(
-                QPixmap(f'date/{self.steamid}/{self.steamid}'
-                        f'_avatarfull_{self.today_date}.jpg'))
+                QPixmap(f'date/{STEAMID}/{STEAMID}'
+                        f'_avatarfull_{TODAY}.jpg'))
             self.ui.label_personaname.setText(
                 self.profile_data_json
                 ['response']['players'][0]
                 ['personaname'] + ' (Приватный профиль)')
-            return
+            return 'Done'
 
         elif self.communityvisibilitystate == 3:
             self.statusBar().showMessage(
@@ -705,8 +715,8 @@ class MyWin(QtWidgets.QMainWindow):
                 self.online_status = " (Offline)"
 
             self.ui.label_avatar.setPixmap(
-                QPixmap(f'date/{self.steamid}/{self.steamid}'
-                        f'_avatarfull_{self.today_date}.jpg'))
+                QPixmap(f'date/{STEAMID}/{STEAMID}'
+                        f'_avatarfull_{TODAY}.jpg'))
             self.ui.label_personaname.setText(
                 self.profile_data_json
                 ['response']['players'][0]['personaname'] + self.online_status)
@@ -720,30 +730,26 @@ class MyWin(QtWidgets.QMainWindow):
 
             self.ui.label_profileurl.setText(
                 self.profile_data_json['response']['players'][0]['profileurl'])
-            self.get_country_info(self.steamid)
+            self.get_country_info(STEAMID)
             return self.profile_data_json
 
     def get_country_info(self, steamid):
-        self.steamid = steamid
-        self.text_location = ""
+        text_location = ""
         self.load_from_file = (
-            f'date/{self.steamid}/{self.steamid}'
-            f'_profile_info_{self.today_date}.json')
+            f'date/{STEAMID}/{STEAMID}'
+            f'_profile_info_{TODAY}.json')
         self.load_location_from_file_1 = (
-            f'date/{self.steamid}/{self.steamid}'
-            f'_profile_location_1_{self.today_date}.json')
+            f'date/{STEAMID}/{STEAMID}'
+            f'_profile_location_1_{TODAY}.json')
         self.load_location_from_file_2 = (
-            f'date/{self.steamid}/{self.steamid}'
-            f'_profile_location_2_{self.today_date}.json')
+            f'date/{STEAMID}/{STEAMID}'
+            f'_profile_location_2_{TODAY}.json')
         self.load_location_from_file_3 = (
-            f'date/{self.steamid}/{self.steamid}'
-            f'_profile_location_3_{self.today_date}.json')
+            f'date/{STEAMID}/{STEAMID}'
+            f'_profile_location_3_{TODAY}.json')
 
-        self.url_profile_info = (
-            'https://api.steampowered.com/'
-            f'ISteamUser/GetPlayerSummaries/v2/?key={key}'
-            f'&steamids={self.steamid}')
-        self.directory = f"{self.steamid}"
+        url_pfile_inf = f'{GPS}{STEAMID}'
+        self.directory = f"{STEAMID}"
         self.parent_dir = "date"
         self.path = os.path.join(self.parent_dir, self.directory)
         try:
@@ -754,17 +760,17 @@ class MyWin(QtWidgets.QMainWindow):
         try:
             open(self.load_from_file, 'r')
         except FileNotFoundError:
-            self.req_profile = requests.get(self.url_profile_info).json()
+            self.req_profile = requests.get(url_pfile_inf).json()
             self.write_json_file(self.req_profile, self.load_from_file)
             self.profile_data_json = (
                 self.open_json_file(self.load_from_file)
                 )
-            self.text_location = ''
+            text_location = ''
 
         try:
             open(self.load_location_from_file_1, 'r')
         except FileNotFoundError:
-            self.req_profile = requests.get(self.url_profile_info).json()
+            self.req_profile = requests.get(url_pfile_inf).json()
             self.write_json_file(self.req_profile, self.load_from_file)
             self.profile_data_json = self.open_json_file(self.load_from_file)
 
@@ -783,14 +789,14 @@ class MyWin(QtWidgets.QMainWindow):
                 self.load_location_from_file_1)
             for _ in self.location_file_1:
                 if _['countrycode'] == self.loccountrycode:
-                    self.text_location += _['countryname'] + ', '
+                    text_location += _['countryname'] + ', '
         except KeyError:
-            self.text_location += '██████████'
-            self.ui.label_loccountrycode.setText(self.text_location)
-            return self.text_location
+            text_location += '██████████'
+            self.ui.label_loccountrycode.setText(text_location)
+            return text_location
 
         try:
-            self.req_profile = requests.get(self.url_profile_info).json()
+            self.req_profile = requests.get(url_pfile_inf).json()
             self.locstatecode = (
                 self.req_profile['response']['players'][0]['locstatecode'])
             self.location_url_2 = (
@@ -804,11 +810,11 @@ class MyWin(QtWidgets.QMainWindow):
                 self.load_location_from_file_2)
             for _ in self.location_file_2:
                 if _['statecode'] == self.locstatecode:
-                    self.text_location += _['statename'] + ', '
+                    text_location += _['statename'] + ', '
         except KeyError:
-            self.text_location += '██████████'
-            self.ui.label_loccountrycode.setText(self.text_location)
-            return self.text_location
+            text_location += '██████████'
+            self.ui.label_loccountrycode.setText(text_location)
+            return text_location
 
         try:
             self.loccityid = (
@@ -824,17 +830,17 @@ class MyWin(QtWidgets.QMainWindow):
                 self.load_location_from_file_3)
             for _ in self.location_file_3:
                 if _['cityid'] == self.loccityid:
-                    self.text_location += _['cityname']
-            self.ui.label_loccountrycode.setText(self.text_location)
-            return self.text_location
+                    text_location += _['cityname']
+            self.ui.label_loccountrycode.setText(text_location)
+            return text_location
         except KeyError:
-            self.text_location += '██████████'
-            self.ui.label_loccountrycode.setText(self.text_location)
+            text_location += '██████████'
+            self.ui.label_loccountrycode.setText(text_location)
 
         # OpenFromFiles on Disc
         self.profile_data_json = self.open_json_file(
             self.load_from_file)
-        self.text_location = ''
+        text_location = ''
 
         try:
             self.loccountrycode = (
@@ -844,11 +850,11 @@ class MyWin(QtWidgets.QMainWindow):
                 self.load_location_from_file_1)
             for _ in self.location_file_1:
                 if _['countrycode'] == self.loccountrycode:
-                    self.text_location += _['countryname'] + ', '
+                    text_location += _['countryname'] + ', '
         except KeyError:
-            self.text_location += '██████████'
-            self.ui.label_loccountrycode.setText(self.text_location)
-            return self.text_location
+            text_location += '██████████'
+            self.ui.label_loccountrycode.setText(text_location)
+            return text_location
 
         try:
             self.locstatecode = (
@@ -858,33 +864,30 @@ class MyWin(QtWidgets.QMainWindow):
                 self.load_location_from_file_2)
             for _ in self.location_file_2:
                 if _['statecode'] == self.locstatecode:
-                    self.text_location += _['statename'] + ', '
+                    text_location += _['statename'] + ', '
         except KeyError:
-            self.text_location +=  '██████████'
-            self.ui.label_loccountrycode.setText(self.text_location)
-            return self.text_location
+            text_location += '██████████'
+            self.ui.label_loccountrycode.setText(text_location)
+            return text_location
         try:
             self.loccityid = self.profile_data_json['response']['players'][0]['loccityid']
             self.location_file_3 = self.open_json_file(self.load_location_from_file_3)
             for _ in self.location_file_3:
                 if _['cityid'] == self.loccityid:
-                    self.text_location += _['cityname']
-            self.ui.label_loccountrycode.setText(self.text_location)
-            return self.text_location
+                    text_location += _['cityname']
+            self.ui.label_loccountrycode.setText(text_location)
+            return text_location
         except KeyError:
-            self.text_location += '██████████'
-            self.ui.label_loccountrycode.setText(self.text_location)
-        return self.text_location
+            text_location += '██████████'
+            self.ui.label_loccountrycode.setText(text_location)
+        return text_location
 
     def get_table_statistics(self, steamid):
-        create_avatar(self.steamid)
-        self.steamid = steamid
+        create_avatar(STEAMID)
         self.file_profile_info = (
-            f'date/{self.steamid}/{self.steamid}'
-            f'_profile_info_{self.today_date}.json')
-        self.url_profile_stat = (
-            'https://api.steampowered.com/ISteamUser/'
-            f'GetPlayerSummaries/v2/?key={key}&steamids={self.steamid}')
+            f'date/{STEAMID}/{STEAMID}'
+            f'_profile_info_{TODAY}.json')
+        self.url_profile_stat = f'{GPS}{STEAMID}'
         self.tmp_text_all = ''
 
         try:
@@ -902,9 +905,9 @@ class MyWin(QtWidgets.QMainWindow):
             self.statusBar().showMessage('ERR: 404 Not found!')
             return self.tmp_text_all
 
-        #  communityvisibilitystate
-        #  1 - the profile is not visible to you (Private, Friends Only, etc)
-        #  3 - the profile is "Public", and the data is visible.
+        #  * communityvisibilitystate
+        #  * 1 - the profile is not visible to you (Private, Friends Only, etc)
+        #  * 3 - the profile is "Public", and the data is visible.
         self.file_profile_info_json = self.open_json_file(
             self.file_profile_info
         )
@@ -912,22 +915,22 @@ class MyWin(QtWidgets.QMainWindow):
             self.statusBar().showMessage(
                 'The profile is not visible to'
                 'you (Private, Friends Only, etc)')
-            self.steamid_profile_json = (
-                f'date/{self.steamid}/{self.steamid}'
-                f'_profile_info_{self.today_date}.json')
+            steamid_profile_json = (
+                f'date/{STEAMID}/{STEAMID}'
+                f'_profile_info_{TODAY}.json')
             self.profile_data_json = self.open_json_file(
-                self.steamid_profile_json)
+                steamid_profile_json)
             self.tmp_text_all = NO_INFO_USERS
             return self.tmp_text_all
         elif self.file_profile_info_json['response']['players'][0][CVS] == 3:
             self.statusBar().showMessage(
                 'The profile is "Public", and the data is visible')
-            self.steamid_profile_json = (
-                f'date/{self.steamid}/{self.steamid}'
-                f'_profile_info_{self.today_date}.json')
-            self.open_json_file(self.steamid_profile_json)
+            steamid_profile_json = (
+                f'date/{STEAMID}/{STEAMID}'
+                f'_profile_info_{TODAY}.json')
+            self.open_json_file(steamid_profile_json)
 
-        self.steamidprofile_json = f'date/{self.steamid}/{self.steamid}_profile_info_{self.today_date}.json'
+        self.steamidprofile_json = f'date/{STEAMID}/{STEAMID}_profile_info_{TODAY}.json'
         self.profile_data_json = self.open_json_file(self.steamidprofile_json)
 
         # 0 - Offline,
@@ -972,11 +975,22 @@ class MyWin(QtWidgets.QMainWindow):
             else:
                 self.online_status = " (Offline)"
 
-        self.tmp_text_all += 'Стим ID - ' + self.profile_data_json['response']['players'][0]['steamid'] + "\n"
-        self.tmp_text_all += 'Статус профиля - ' + self.statis_profile + "\n"
-        self.tmp_text_all += 'Статус Steam - ' + self.online_status + "\n"
-        self.tmp_text_all += 'Никнейм - ' + str(self.profile_data_json['response']['players'][0]['personaname']) + "\n"
-        self.tmp_text_all += 'Ссылка на профиль - ' + str(self.profile_data_json['response']['players'][0]['profileurl']) + "\n"
+        self.tmp_text_all += (
+            'Стим ID - '
+            f"{self.profile_data_json['response']['players'][0]['steamid']}\n"
+            )
+        self.tmp_text_all += f'Статус профиля - {self.statis_profile}\n'
+        self.tmp_text_all += f'Статус Steam - {self.online_status}\n'
+        tmp_name = (
+            self.profile_data_json['response']
+            ['players'][0]['personaname'])
+        self.tmp_text_all += f"Никнейм - {str(tmp_name)}\n"
+        tmp_pfile = (
+            self.profile_data_json['response']
+            ['players'][0]['profileurl'])
+        self.tmp_text_all += f"Ссылка на профиль - {str(tmp_pfile)}\n"
+        # TODO complite f-string next 3 rows
+        # ! 06.08.2021
         try:
             self.tmp_text_all += 'Последний раз выходил - ' + str(datetime.fromtimestamp(self.profile_data_json['response']['players'][0]['lastlogoff'])) + "\n"
         except KeyError:
@@ -985,34 +999,49 @@ class MyWin(QtWidgets.QMainWindow):
             self.tmp_text_all += 'Реальное имя - ' + str(self.profile_data_json['response']['players'][0]['realname']) + "\n"
         except KeyError:
             self.tmp_text_all += 'Реальное имя - ' + '██████████' + "\n"
-        self.tmp_text_all += 'Дата создания профиля - ' + str(datetime.fromtimestamp(self.profile_data_json['response']['players'][0]['timecreated'])) + "\n"
-        self.tmp_text_all += 'Страна - ' + self.ui.label_loccountrycode.text() + "\n"
+        tmp_timec = (
+            datetime.fromtimestamp(
+                self.profile_data_json['response']
+                ['players'][0]['timecreated'])
+        )
+        self.tmp_text_all += f'Дата создания профиля - {str(tmp_timec)}\n'
+        self.tmp_text_all += (
+            f"Страна - {self.ui.label_loccountrycode.text()}\n")
 
         return self.tmp_text_all
 
-    def open_new_profile(self):
-        self.steamid = self.ui.lineEdit_steamidfind.text()
-        try:
-            int(self.steamid)
-        except TypeError:
+    def open_new_profile(self) -> str:
+        # TODO FIX not valid steam id in input
+        steam_id = self.ui.lineEdit_steamidfind.text()
+        if steam_id == '':
             self.statusBar().showMessage(
-                'Not INT')
+                'Enter steam id or str')
+            return 'Enter steam id or str'
+
+        try:
+            int(steam_id)
+        except TypeError:
+            self.statusBar().showMessage(f'Steamid {steam_id} - not INT')
+            return f'Steamid {steam_id} - not INT'
 
         self.ui.label_realname.setText('')
         self.ui.label_profileurl.setText('')
         self.ui.label_loccountrycode.setText('')
-        if self.check_profile(self.steamid) == 0:
-            pass
-        self.get_info_profile(self.steamid)
+        if self.check_profile(steam_id) == 'ERR: not found!':
+            return 'Not steamid'
+        self.get_info_profile(steam_id)
         self.ui.textBrowser_info.setText(
-            self.get_table_statistics(self.steamid))
-        return self.steamid
+            self.get_table_statistics(steam_id))
+        return f'Steamid - {steam_id}'
 
-    def check_profile(self, steamid):
-        self.steamid = steamid
-        self.url_profile_info = f'https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v2/?key={key}&steamids={self.steamid}'
+    def check_profile(self, steamid: str) -> str:
+        # ! fix STEAMID pep8
+        STEAMID = steamid
+        url_pfile_inf = f'{GPS}{STEAMID}'
 
-        if requests.get(self.url_profile_info).json()['response']['players'] == []:
+        if requests.get(
+            url_pfile_inf
+                ).json()['response']['players'] == []:
             pixmap = QPixmap('img/error.jpg')
             self.ui.label_avatar.setPixmap(pixmap)
             self.ui.label_rank.setPixmap(pixmap)
@@ -1021,7 +1050,7 @@ class MyWin(QtWidgets.QMainWindow):
             self.ui.label_profileurl.setText('https://steamcommunity.com/')
             self.ui.label_loccountrycode.setText('██████████')
             self.statusBar().showMessage(
-                'ERR: Profile Not Found!')
+                'ERR: Not valid steamid!')
             tmp_text_all = TEXT_NOT_FOUND
             self.ui.textBrowser_info.setText(tmp_text_all)
             self.ui.tabWidget.setTabEnabled(1, False)
@@ -1029,7 +1058,7 @@ class MyWin(QtWidgets.QMainWindow):
             self.ui.tabWidget.setTabEnabled(3, False)
             self.ui.tabWidget.setTabEnabled(4, False)
             self.ui.pushButton_update_stat.setEnabled(False)
-            return 0
+            return 'ERR: not found!'
 
     def click_avatar(self):
         webbrowser.open(self.ui.label_profileurl.text())
@@ -1037,7 +1066,7 @@ class MyWin(QtWidgets.QMainWindow):
     def write_json_file(self, date_to_write, fname):
         self.date_to_write = date_to_write
         self.fname = fname
-        with open(self.fname, 'w', encoding='utf-8') as self.write_json_file_:
+        with open(self.fname, 'w', encoding=UTF8) as self.write_json_file_:
             return json.dump(
                 self.date_to_write,
                 self.write_json_file_,
@@ -1046,10 +1075,10 @@ class MyWin(QtWidgets.QMainWindow):
     def open_json_file(self, fname):
         self.fname = fname
         try:
-            open(self.fname, 'r', encoding='utf-8')
+            open(self.fname, 'r', encoding=UTF8)
         except FileNotFoundError:
             print('ERR: file not found:', fname)
-        with open(self.fname, 'r', encoding='utf-8') as self.read_json_file:
+        with open(self.fname, 'r', encoding=UTF8) as self.read_json_file:
             return json.load(self.read_json_file)
 
     # WEAPONS
@@ -1087,8 +1116,7 @@ class MyWin(QtWidgets.QMainWindow):
 
     def on_change_vac_rows(self, info_progress_bar_vac, all_users):
         self.info_progress_bar_vac = info_progress_bar_vac
-        self.all_users = all_users
-        self.ui.progressBar_bans.setMaximum(self.all_users - 1)
+        self.ui.progressBar_bans.setMaximum(all_users - 1)
         self.ui.progressBar_bans.setProperty(
             "value",
             self.info_progress_bar_vac)
@@ -1106,177 +1134,171 @@ class CheckWeaponsThread(QtCore.QThread, MyWin):
     def __init__(self, parent=None):
         QtCore.QThread.__init__(self, parent)
         self.running = False
-        self.today = date.today()
-        self.today_date = self.today.strftime("%b-%d-%Y")
 
     def run(self):
-        self.steamid = steamid
-        self.weapons_info = self.get_info_weapons(self.steamid)
-
-        if self.weapons_info == [('', '', '', '', '', '', '')]:
+        w_info = self.get_info_weapons(STEAMID)
+        path = f'date/all_weapons/{STEAMID}/{TODAY}.json'
+        if w_info == [('', '', '', '', '', '', '')]:
             pass
 
-        today = date.today()
-        today_date = today.strftime("%b-%d-%Y")
-        with open(f'date/all_weapons/{self.steamid}/{today_date}.json', 'w', encoding='utf-8') as self.file_all_weapons:
-            json.dump(self.weapons_info, self.file_all_weapons, ensure_ascii=False, indent=4)
-        return self.list_all_weapons.emit(self.weapons_info)
+        with open(path, 'w', encoding=UTF8) as fw:
+            json.dump(w_info, fw, ensure_ascii=False, indent=4)
+        return self.list_all_weapons.emit(w_info)
 
-    def get_info_weapons(self, steamid):
-        self.steamid = steamid
-        self.url_profile_info = f'https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v2/?key={key}&steamids={self.steamid}'
-        if requests.get(self.url_profile_info).json()['response']['players'][0][CVS] == 1:
+    def get_info_weapons(self, STEAMID):
+        url_pfile_inf = f'{GPS}{STEAMID}'
+        if requests.get(url_pfile_inf).json()['response']['players'][0][CVS] == 1:
             return [('', '', '', '', '', '', '')]
 
         total_ksh_ak47 = [
-            self.find_key_by_value('total_kills_ak47', self.steamid),
-            self.find_key_by_value('total_shots_ak47', self.steamid),
-            self.find_key_by_value('total_hits_ak47', self.steamid)]
+            self.find_key_by_value('total_kills_ak47', STEAMID),
+            self.find_key_by_value('total_shots_ak47', STEAMID),
+            self.find_key_by_value('total_hits_ak47', STEAMID)]
 
         total_ksh_aug = [
-            self.find_key_by_value('total_kills_aug', self.steamid),
-            self.find_key_by_value('total_shots_aug', self.steamid),
-            self.find_key_by_value('total_hits_aug', self.steamid)]
+            self.find_key_by_value('total_kills_aug', STEAMID),
+            self.find_key_by_value('total_shots_aug', STEAMID),
+            self.find_key_by_value('total_hits_aug', STEAMID)]
 
         total_ksh_awp = [
-            self.find_key_by_value('total_kills_awp', self.steamid),
-            self.find_key_by_value('total_shots_awp', self.steamid),
-            self.find_key_by_value('total_hits_awp', self.steamid)]
+            self.find_key_by_value('total_kills_awp', STEAMID),
+            self.find_key_by_value('total_shots_awp', STEAMID),
+            self.find_key_by_value('total_hits_awp', STEAMID)]
 
         total_ksh_awp = [
-            self.find_key_by_value('total_kills_awp', self.steamid),
-            self.find_key_by_value('total_shots_awp', self.steamid),
-            self.find_key_by_value('total_hits_awp', self.steamid)]
+            self.find_key_by_value('total_kills_awp', STEAMID),
+            self.find_key_by_value('total_shots_awp', STEAMID),
+            self.find_key_by_value('total_hits_awp', STEAMID)]
 
         total_ksh_deagle = [
-            self.find_key_by_value('total_kills_deagle', self.steamid),
-            self.find_key_by_value('total_shots_deagle', self.steamid),
-            self.find_key_by_value('total_hits_deagle', self.steamid)]
+            self.find_key_by_value('total_kills_deagle', STEAMID),
+            self.find_key_by_value('total_shots_deagle', STEAMID),
+            self.find_key_by_value('total_hits_deagle', STEAMID)]
 
         total_ksh_elite = [
-            self.find_key_by_value('total_kills_elite', self.steamid),
-            self.find_key_by_value('total_shots_elite', self.steamid),
-            self.find_key_by_value('total_hits_elite', self.steamid)]
+            self.find_key_by_value('total_kills_elite', STEAMID),
+            self.find_key_by_value('total_shots_elite', STEAMID),
+            self.find_key_by_value('total_hits_elite', STEAMID)]
 
         total_ksh_famas = [
-            self.find_key_by_value('total_kills_famas', self.steamid),
-            self.find_key_by_value('total_shots_famas', self.steamid),
-            self.find_key_by_value('total_hits_famas', self.steamid)]
+            self.find_key_by_value('total_kills_famas', STEAMID),
+            self.find_key_by_value('total_shots_famas', STEAMID),
+            self.find_key_by_value('total_hits_famas', STEAMID)]
 
         total_ksh_fiveseven = [
-            self.find_key_by_value('total_kills_fiveseven', self.steamid),
-            self.find_key_by_value('total_shots_fiveseven', self.steamid),
-            self.find_key_by_value('total_hits_fiveseven', self.steamid)]
+            self.find_key_by_value('total_kills_fiveseven', STEAMID),
+            self.find_key_by_value('total_shots_fiveseven', STEAMID),
+            self.find_key_by_value('total_hits_fiveseven', STEAMID)]
 
         total_ksh_g3sg1 = [
-            self.find_key_by_value('total_kills_g3sg1', self.steamid),
-            self.find_key_by_value('total_shots_g3sg1', self.steamid),
-            self.find_key_by_value('total_hits_g3sg1', self.steamid)]
+            self.find_key_by_value('total_kills_g3sg1', STEAMID),
+            self.find_key_by_value('total_shots_g3sg1', STEAMID),
+            self.find_key_by_value('total_hits_g3sg1', STEAMID)]
 
         total_ksh_galilar = [
-            self.find_key_by_value('total_kills_galilar', self.steamid),
-            self.find_key_by_value('total_shots_galilar', self.steamid),
-            self.find_key_by_value('total_hits_galilar', self.steamid)]
+            self.find_key_by_value('total_kills_galilar', STEAMID),
+            self.find_key_by_value('total_shots_galilar', STEAMID),
+            self.find_key_by_value('total_hits_galilar', STEAMID)]
 
         total_ksh_glock = [
-            self.find_key_by_value('total_kills_glock', self.steamid),
-            self.find_key_by_value('total_shots_glock', self.steamid),
-            self.find_key_by_value('total_hits_glock', self.steamid)]
+            self.find_key_by_value('total_kills_glock', STEAMID),
+            self.find_key_by_value('total_shots_glock', STEAMID),
+            self.find_key_by_value('total_hits_glock', STEAMID)]
 
         total_ksh_m249 = [
-            self.find_key_by_value('total_kills_m249', self.steamid),
-            self.find_key_by_value('total_shots_m249', self.steamid),
-            self.find_key_by_value('total_hits_m249', self.steamid)]
+            self.find_key_by_value('total_kills_m249', STEAMID),
+            self.find_key_by_value('total_shots_m249', STEAMID),
+            self.find_key_by_value('total_hits_m249', STEAMID)]
 
         total_ksh_m4a1 = [
-            self.find_key_by_value('total_kills_m4a1', self.steamid),
-            self.find_key_by_value('total_shots_m4a1', self.steamid),
-            self.find_key_by_value('total_hits_m4a1', self.steamid)]
+            self.find_key_by_value('total_kills_m4a1', STEAMID),
+            self.find_key_by_value('total_shots_m4a1', STEAMID),
+            self.find_key_by_value('total_hits_m4a1', STEAMID)]
 
         total_ksh_mac10 = [
-            self.find_key_by_value('total_kills_mac10', self.steamid),
-            self.find_key_by_value('total_shots_mac10', self.steamid),
-            self.find_key_by_value('total_hits_mac10', self.steamid)]
+            self.find_key_by_value('total_kills_mac10', STEAMID),
+            self.find_key_by_value('total_shots_mac10', STEAMID),
+            self.find_key_by_value('total_hits_mac10', STEAMID)]
 
         total_ksh_mag7 = [
-            self.find_key_by_value('total_kills_mag7', self.steamid),
-            self.find_key_by_value('total_shots_mag7', self.steamid),
-            self.find_key_by_value('total_hits_mag7', self.steamid)]
+            self.find_key_by_value('total_kills_mag7', STEAMID),
+            self.find_key_by_value('total_shots_mag7', STEAMID),
+            self.find_key_by_value('total_hits_mag7', STEAMID)]
 
         total_ksh_mp7 = [
-            self.find_key_by_value('total_kills_mp7', self.steamid),
-            self.find_key_by_value('total_shots_mp7', self.steamid),
-            self.find_key_by_value('total_hits_mp7', self.steamid)]
+            self.find_key_by_value('total_kills_mp7', STEAMID),
+            self.find_key_by_value('total_shots_mp7', STEAMID),
+            self.find_key_by_value('total_hits_mp7', STEAMID)]
 
         total_ksh_mp9 = [
-            self.find_key_by_value('total_kills_mp9', self.steamid),
-            self.find_key_by_value('total_shots_mp9', self.steamid),
-            self.find_key_by_value('total_hits_mp9', self.steamid)]
+            self.find_key_by_value('total_kills_mp9', STEAMID),
+            self.find_key_by_value('total_shots_mp9', STEAMID),
+            self.find_key_by_value('total_hits_mp9', STEAMID)]
 
         total_ksh_negev = [
-            self.find_key_by_value('total_kills_negev', self.steamid),
-            self.find_key_by_value('total_shots_negev', self.steamid),
-            self.find_key_by_value('total_hits_negev', self.steamid)]
+            self.find_key_by_value('total_kills_negev', STEAMID),
+            self.find_key_by_value('total_shots_negev', STEAMID),
+            self.find_key_by_value('total_hits_negev', STEAMID)]
 
         total_ksh_nova = [
-            self.find_key_by_value('total_kills_nova', self.steamid),
-            self.find_key_by_value('total_shots_nova', self.steamid),
-            self.find_key_by_value('total_hits_nova', self.steamid)]
+            self.find_key_by_value('total_kills_nova', STEAMID),
+            self.find_key_by_value('total_shots_nova', STEAMID),
+            self.find_key_by_value('total_hits_nova', STEAMID)]
 
         total_ksh_hkp2000 = [
-            self.find_key_by_value('total_kills_hkp2000', self.steamid),
-            self.find_key_by_value('total_shots_hkp2000', self.steamid),
-            self.find_key_by_value('total_hits_hkp2000', self.steamid)]
+            self.find_key_by_value('total_kills_hkp2000', STEAMID),
+            self.find_key_by_value('total_shots_hkp2000', STEAMID),
+            self.find_key_by_value('total_hits_hkp2000', STEAMID)]
 
         total_ksh_p250 = [
-            self.find_key_by_value('total_kills_p250', self.steamid),
-            self.find_key_by_value('total_shots_p250', self.steamid),
-            self.find_key_by_value('total_hits_p250', self.steamid)]
+            self.find_key_by_value('total_kills_p250', STEAMID),
+            self.find_key_by_value('total_shots_p250', STEAMID),
+            self.find_key_by_value('total_hits_p250', STEAMID)]
 
         total_ksh_p90 = [
-            self.find_key_by_value('total_kills_p90', self.steamid),
-            self.find_key_by_value('total_shots_p90', self.steamid),
-            self.find_key_by_value('total_hits_p90', self.steamid)]
+            self.find_key_by_value('total_kills_p90', STEAMID),
+            self.find_key_by_value('total_shots_p90', STEAMID),
+            self.find_key_by_value('total_hits_p90', STEAMID)]
 
         total_ksh_bizon = [
-            self.find_key_by_value('total_kills_bizon', self.steamid),
-            self.find_key_by_value('total_shots_bizon', self.steamid),
-            self.find_key_by_value('total_hits_bizon', self.steamid)]
+            self.find_key_by_value('total_kills_bizon', STEAMID),
+            self.find_key_by_value('total_shots_bizon', STEAMID),
+            self.find_key_by_value('total_hits_bizon', STEAMID)]
 
         total_ksh_sawedoff = [
-            self.find_key_by_value('total_kills_sawedoff', self.steamid),
-            self.find_key_by_value('total_shots_sawedoff', self.steamid),
-            self.find_key_by_value('total_hits_sawedoff', self.steamid)]
+            self.find_key_by_value('total_kills_sawedoff', STEAMID),
+            self.find_key_by_value('total_shots_sawedoff', STEAMID),
+            self.find_key_by_value('total_hits_sawedoff', STEAMID)]
 
         total_ksh_scar20 = [
-            self.find_key_by_value('total_kills_scar20', self.steamid),
-            self.find_key_by_value('total_shots_scar20', self.steamid),
-            self.find_key_by_value('total_hits_scar20', self.steamid)]
+            self.find_key_by_value('total_kills_scar20', STEAMID),
+            self.find_key_by_value('total_shots_scar20', STEAMID),
+            self.find_key_by_value('total_hits_scar20', STEAMID)]
 
         total_ksh_sg556 = [
-            self.find_key_by_value('total_kills_sg556', self.steamid),
-            self.find_key_by_value('total_shots_sg556', self.steamid),
-            self.find_key_by_value('total_hits_sg556', self.steamid)]
+            self.find_key_by_value('total_kills_sg556', STEAMID),
+            self.find_key_by_value('total_shots_sg556', STEAMID),
+            self.find_key_by_value('total_hits_sg556', STEAMID)]
 
         total_ksh_ssg08 = [
-            self.find_key_by_value('total_kills_ssg08', self.steamid),
-            self.find_key_by_value('total_shots_ssg08', self.steamid),
-            self.find_key_by_value('total_hits_ssg08', self.steamid)]
+            self.find_key_by_value('total_kills_ssg08', STEAMID),
+            self.find_key_by_value('total_shots_ssg08', STEAMID),
+            self.find_key_by_value('total_hits_ssg08', STEAMID)]
 
         total_ksh_tec9 = [
-            self.find_key_by_value('total_kills_tec9', self.steamid),
-            self.find_key_by_value('total_shots_tec9', self.steamid),
-            self.find_key_by_value('total_hits_tec9', self.steamid)]
+            self.find_key_by_value('total_kills_tec9', STEAMID),
+            self.find_key_by_value('total_shots_tec9', STEAMID),
+            self.find_key_by_value('total_hits_tec9', STEAMID)]
 
         total_ksh_ump45 = [
-            self.find_key_by_value('total_kills_ump45', self.steamid),
-            self.find_key_by_value('total_shots_ump45', self.steamid),
-            self.find_key_by_value('total_hits_ump45', self.steamid)]
+            self.find_key_by_value('total_kills_ump45', STEAMID),
+            self.find_key_by_value('total_shots_ump45', STEAMID),
+            self.find_key_by_value('total_hits_ump45', STEAMID)]
 
         total_ksh_xm1014 = [
-            self.find_key_by_value('total_kills_xm1014', self.steamid),
-            self.find_key_by_value('total_shots_xm1014', self.steamid),
-            self.find_key_by_value('total_hits_xm1014', self.steamid)]
+            self.find_key_by_value('total_kills_xm1014', STEAMID),
+            self.find_key_by_value('total_shots_xm1014', STEAMID),
+            self.find_key_by_value('total_hits_xm1014', STEAMID)]
 
         total_summ = sum(
             [
@@ -1550,30 +1572,31 @@ class CheckWeaponsThread(QtCore.QThread, MyWin):
              str(total_ksh_xm1014[2]),
              str(total_ksh_xm1014[1]),
              str(round(total_ksh_xm1014[0] / total_summ * 100, 2)) + "%")]
-        return self.date_weapons    
+        return self.date_weapons
 
-    def find_key_by_value(self, finded, steamid):
-        self.steamid = steamid
-        self.url_all_statistic = f'https://api.steampowered.com/ISteamUserStats/GetUserStatsForGame/v0002/?appid=730&key={key}&steamid={self.steamid}'
-        self.get_statistic_json = f'date/{self.steamid}/{self.steamid}_all_statistic_{self.today_date}.json'
+    def find_key_by_value(self, finded, STEAMID):
+        self.url_all_statistic = f'{GUSFG}{STEAMID}'
+        self.get_statistic_json = (
+            f'date/{STEAMID}/{STEAMID}'
+            f'_all_statistic_{TODAY}.json')
         self.finded = finded
 
         if requests.get(self.url_all_statistic).status_code == 500:
-            #print('Статистика по оружию недоступна!', self.steamid)
-            return
+            return 'Error 500'
 
         try:
-            open(self.get_statistic_json, 'r', encoding='utf-8')
+            open(self.get_statistic_json, 'r', encoding=UTF8)
         except:
             self.req_statistic = requests.get(self.url_all_statistic).json()
             self.write_json_file(self.req_statistic, self.get_statistic_json)
 
         self.statistic_file_json = self.open_json_file(self.get_statistic_json)
-        self.finded_val = 0 
+        self.finded_val = 0
         for _ in self.statistic_file_json['playerstats']['stats']:
             if _['name'] == self.finded:
                 self.finded_val = _['value']
         return self.finded_val
+
 
 class CheckFriendsThread(QtCore.QThread, MyWin):
     list_all_friends = QtCore.pyqtSignal(list)
@@ -1581,89 +1604,81 @@ class CheckFriendsThread(QtCore.QThread, MyWin):
     def __init__(self, parent=None):
         QtCore.QThread.__init__(self, parent)
         self.running = False
-        self.today = date.today()
-        self.today_date = self.today.strftime("%b-%d-%Y")
         self.get_vac_status = CheckVacThread()
 
-    def run(self):
-        self.running = True        
-        self.steamid = steamid
-        self.url_friends_list = f'https://api.steampowered.com/ISteamUser/GetFriendList/v1/?key={key}&steamid={self.steamid}'
-        self.all_friend_list_json = f'date/{self.steamid}/{self.steamid}_all_friend_list_{self.today_date}.json'
-        self.friend_info = []
+    def run(self) -> None:
+        self.running = True
+        url_frs = f'{GPS}{STEAMID}'
+        all_fr_jsn = f'date/{STEAMID}/{STEAMID}_all_friend_list_{TODAY}.json'
+        friend_info = []
         try:
-            open(f'date/{self.steamid}/{self.steamid}_all_friend_list_{self.today_date}.json', 'r')
+            open(
+                f'date/{STEAMID}/{STEAMID}'
+                f'_all_friend_list_{TODAY}.json', 'r')
         except FileNotFoundError:
-            self.req_friends_list = requests.get(self.url_friends_list).json()
+            self.req_friends_list = requests.get(url_frs).json()
             self.write_json_file(
                 self.req_friends_list,
-                self.all_friend_list_json)
+                all_fr_jsn)
 
-        if self.get_profile_check(self.steamid) == 0:
-            self.friend_info = [('', '', '', '', '', '', '')]
-            return self.friend_info
+        if self.get_profile_check(STEAMID) == 0:
+            friend_info = [('', '', '', '', '', '', '')]
+            return friend_info
 
-        self.friend_steamid = self.open_json_file(self.all_friend_list_json)
+        fr_steam = self.open_json_file(all_fr_jsn)
 
         try:
-            self.friend_steamid['friendslist']['friends']
+            fr_steam['friendslist']['friends']
         except KeyError:
             print('Скрытый профиль!')
-
-        for i in range(len(
-                self.friend_steamid['friendslist']['friends'])
-                ):
-            self.steam_id_friend = (
-                self.friend_steamid
+        friend_l = fr_steam['friendslist']['friends']
+        for i in range(len(friend_l)):
+            s_id_friend = (
+                fr_steam
                 ['friendslist']['friends'][i]['steamid'])
             self.friend_since_friend = (
                 str(datetime.fromtimestamp(
-                    self.friend_steamid
+                    fr_steam
                     ['friendslist']['friends'][i]['friend_since'])
                     ).split(' ')[0])
-            self.vac_status = (
+            vac_status = (
                 self.get_vac_status.check_vac_banned(
-                    self.steam_id_friend))
-            self.url_friend_info = (
-                'https://api.steampowered.com/ISteamUser/'
-                f'GetPlayerSummaries/v2/?key={key}'
-                f'&steamids={self.steam_id_friend}')
+                    s_id_friend))
+            self.url_friend_info = f'{GPS}{s_id_friend}'
             try:
-                open(
-                    f'date/{self.steamid}/{self.steam_id_friend}.json',
-                    'r',
-                    encoding='utf-8')
+                open(f'date/{STEAMID}/{s_id_friend}.json', 'r', encoding=UTF8)
             except FileNotFoundError:
                 self.req_friends = requests.get(self.url_friend_info).json()
                 self.friend_steamid_json = (
-                    f"date/{self.steamid}/"
+                    f"date/{STEAMID}/"
                     f"{self.req_friends['response']['players'][0]['steamid']}"
                     ".json")
                 self.write_json_file(
                     self.req_friends,
                     self.friend_steamid_json)
                 self.friend = self.open_json_file(self.friend_steamid_json)
-                self.friend_info.append([
-                    self.steam_id_friend,
+                friend_info.append([
+                    s_id_friend,
                     self.friend['response']['players'][0]['personaname'],
                     self.friend_since_friend,
-                    'VAC БАН' if self.vac_status['players'][0]['VACBanned'] else '',
-                    'Community Banned' if self.vac_status['players'][0]["CommunityBanned"] else '',
-                    "" if self.vac_status['players'][0]["EconomyBan"] == "none" else "Economy Ban",
-                    str(self.vac_status['players'][0]["NumberOfGameBans"]) if self.vac_status['players'][0]["NumberOfGameBans"] else ""])
+                    'VAC БАН' if vac_status['players'][0]['VACBanned'] else '',
+                    'Community Banned' if vac_status['players'][0]["CommunityBanned"] else '',
+                    "" if vac_status['players'][0]["EconomyBan"] == "none" else "Economy Ban",
+                    str(vac_status['players'][0]["NumberOfGameBans"]) if vac_status['players'][0]["NumberOfGameBans"] else ""])
                 continue
 
-            self.friend_steamid_json = f'date/{self.steamid}/{self.steam_id_friend}.json'
+            self.friend_steamid_json = (
+                f'date/{STEAMID}/{s_id_friend}.json')
             self.friend = self.open_json_file(self.friend_steamid_json)
-            self.friend_info.append([
-                    self.steam_id_friend,
+            friend_info.append([
+                    s_id_friend,
                     self.friend['response']['players'][0]['personaname'],
                     self.friend_since_friend,
-                    'VAC БАН' if self.vac_status['players'][0]['VACBanned'] else '',
-                    'Community Banned' if self.vac_status['players'][0]["CommunityBanned"] else '',
-                    "" if self.vac_status['players'][0]["EconomyBan"] == "none" else "Economy Ban",
-                    str(self.vac_status['players'][0]["NumberOfGameBans"]) if self.vac_status['players'][0]["NumberOfGameBans"] else ""])
-            self.list_all_friends.emit(self.friend_info)
+                    'VAC БАН' if vac_status['players'][0]['VACBanned'] else '',
+                    'Community Banned' if vac_status['players'][0]["CommunityBanned"] else '',
+                    "" if vac_status['players'][0]["EconomyBan"] == "none" else "Economy Ban",
+                    str(vac_status['players'][0]["NumberOfGameBans"]) if vac_status['players'][0]["NumberOfGameBans"] else ""])
+            self.list_all_friends.emit(friend_info)
 
 
 class CheckMatchesThread(QtCore.QThread, MyWin):
@@ -1678,83 +1693,106 @@ class CheckVacThread(QtCore.QThread, MyWin):
     def __init__(self, parent=None):
         QtCore.QThread.__init__(self, parent)
         self.running = False
-        self._ = 0
-        self.today = date.today()
-        self.today_date = self.today.strftime("%b-%d-%Y")
-        self.vac_banned_status_all = []
-        self.all_users = []
-        self.vac_banned_status = []
-        self.tmp_all_users = []
-        self.tmp_steamid: str = ''
         self.name: str = ''
-        self.date_match_all: list = []
+        date_match_all: list = []
 
-    def run(self):
-        self.running = True
-        self.file_all_users = 'all_stats/all_stats.json'
-        self.date_match_users = self.open_json_file(self.file_all_users)
+    def run(self) -> None:
+        tmp_stmid: str = ''
+        all_users = []
+        vac_status = []
+        tmp_users = []
+        val: int = 0
+        vacban_sts_all: list = []
+        self.running: bool = True
+        date_match_users = self.open_json_file(
+            'all_stats/all_stats.json'
+            )
 
-        for _ in range(len(self.date_match_users)):
+        for count in range(len(date_match_users)):
             for i in range(10):
-                self.vac_banned_status_all.append(
-                    [self.date_match_users[_]['team'][i]['steamid64'],
-                     self.date_match_users[_]['date']])
+                vacban_sts_all.append(
+                    [date_match_users[count]['team'][i]['steamid64'],
+                     date_match_users[count]['date']])
 
-        for line in self.vac_banned_status_all:
-            if line not in self.all_users:
-                self.all_users.append(line)
+        for line in vacban_sts_all:
+            if line not in all_users:
+                all_users.append(line)
 
         while self.running:
-            self.vac_banned_status.append(
-                self.check_vac_banned(self.all_users[self._][0]))
-            self.tmp_steamid = self.all_users[self._][0]
+            vac_status.append(
+                self.check_vac_banned(all_users[val][0]))
+            tmp_stmid = all_users[val][0]
             self.int_for_progressbar_vac.emit(
-                self._,
-                len(self.all_users))
+                val,
+                len(all_users))
             try:
-                self.name = self.open_json_file((
-                    f'date/{self.tmp_steamid}/{self.tmp_steamid}_profile_info_'
-                    f'{self.today_date}.json')
-                    ['response']['players'][0]['personaname'])
+                name = self.open_json_file(
+                    f'date/{tmp_stmid}/{tmp_stmid}_profile_info_{TODAY}.json'
+                    )['response']['players'][0]['personaname']
             except IndexError:
-                self.tmp_steamid = '76561197997566454'
-                self.name = self.open_json_file((
-                    f'date/{self.tmp_steamid}/{self.tmp_steamid}'
-                    f'_profile_info_{self.today_date}.json')
-                    ['response']['players'][0]['personaname'])
+                tmp_stmid = '76561197997566454'
+                name = self.open_json_file(
+                    f'date/{tmp_stmid}/{tmp_stmid}_profile_info_{TODAY}.json'
+                    )['response']['players'][0]['personaname']
 
-            self.date_bans = self.today - timedelta(days = self.vac_banned_status[self._]['players'][0]["DaysSinceLastBan"])
-            print(self.tmp_steamid)
-            if (str(self.all_users[self._][1]) <= str(self.date_bans).split(' ')[0]) and self.vac_banned_status[self._]['players'][0]["VACBanned"]:
-                self.tmp_all_users.append([
-                        self.tmp_steamid,
-                        self.name,
-                        str(self.all_users[self._][1]),
-                        'Забанен' if self.vac_banned_status[self._]['players'][0]["CommunityBanned"] else '',
-                        'Забанен' if self.vac_banned_status[self._]['players'][0]["VACBanned"] else '',
-                        str(self.vac_banned_status[self._]['players'][0]["NumberOfVACBans"]) if self.vac_banned_status[self._]['players'][0]["NumberOfVACBans"] else "",
-                        str(self.date_bans).split(' ')[0] if self.vac_banned_status[self._]['players'][0]["DaysSinceLastBan"] else f'Новый! {self.today}',
-                        str(self.vac_banned_status[self._]['players'][0]["NumberOfGameBans"]) if self.vac_banned_status[self._]['players'][0]["NumberOfGameBans"] else "",
-                        "" if self.vac_banned_status[self._]['players'][0]["EconomyBan"] == "none" else 'Забанен'])
+            day = vac_status[val]['players'][0]['DaysSinceLastBan']
+            date_ban = TODAY - timedelta(days=day)
+            if (
+                str(all_users[val][1]) <= str(date_ban).split(' ')[0]
+            ) and vac_status[val]['players'][0]["VACBanned"]:
+                tmp_users.append(
+                    [
+                        tmp_stmid,
+                        name,
+                        str(all_users[val][1]),
+                        (
+                            'Забанен' if vac_status[val]
+                            ['players'][0]["CommunityBanned"] else ''
+                            ),
+                        (
+                            'Забанен' if vac_status[val]
+                            ['players'][0]["VACBanned"] else ''
+                            ),
+                        (
+                            str(
+                                vac_status[val]
+                                ['players'][0]
+                                ["NumberOfVACBans"]) if vac_status[val]
+                            ['players'][0]["NumberOfVACBans"] else ""
+                            ),
+                        (
+                            str(date_ban).split(' ')[0] if vac_status[val]
+                            ['players'][0]
+                            ["DaysSinceLastBan"] else f'Новый! {TODAY}'
+                            ),
+                        (
+                            str(
+                                vac_status[val]['players'][0]
+                                ["NumberOfGameBans"]) if vac_status[val]
+                            ['players'][0]["NumberOfGameBans"] else ""
+                            ),
+                        (
+                            "" if vac_status[val]
+                            ['players'][0]["EconomyBan"] == "none" else 'BAN')
+                        ]
+                    )
 
-            self._ += 1
-            if self._ == len(self.all_users):
-                self.list_all_users.emit(self.tmp_all_users, )
+            val += 1
+            if val == len(all_users):
+                self.list_all_users.emit(tmp_users, )
                 self.running = False
-                #break
+                # break
 
-    def check_vac_banned(self, steamid):
-        self.steamid = steamid
+    def check_vac_banned(self, STEAMID):
         self.file_bans_users = (
-            f'date/{self.steamid}/{self.steamid}'
-            f'_ban_status_{self.today_date}.json')
-        self.url_steam_bans = (
-            'https://api.steampowered.com/ISteamUser/'
-            f'GetPlayerBans/v1/?key={key}&steamids={self.steamid}')
-        self.directory = f"{self.steamid}"
-        self.parent_dir = f'date\\{self.steamid}'
+            f'date/{STEAMID}/{STEAMID}'
+            f'_ban_status_{TODAY}.json')
+
+        url_steam_bans = f'{GPB}{STEAMID}'
+        self.directory = f"{STEAMID}"
+        self.parent_dir = f'date\\{STEAMID}'
         self.path = os.path.join(self.parent_dir, self.directory)
-        self.get_profile_status(self.steamid)
+        self.get_profile_status(STEAMID)
 
         try:
             os.mkdir(self.path)
@@ -1763,26 +1801,23 @@ class CheckVacThread(QtCore.QThread, MyWin):
 
         try:
             open(
-                f'date/{self.steamid}/{self.steamid}'
-                f'_ban_status_{self.today_date}.json', 'r')
+                f'date/{STEAMID}/{STEAMID}'
+                f'_ban_status_{TODAY}.json', 'r')
         except FileNotFoundError:
-            self.message_toolbar_bans.emit(self.steamid)
-            self.request_bans = requests.get(self.url_steam_bans).json()
+            self.message_toolbar_bans.emit(STEAMID)
+            self.request_bans = requests.get(url_steam_bans).json()
             self.write_json_file(self.request_bans, self.file_bans_users)
             return self.open_json_file(self.file_bans_users)
 
-        self.message_toolbar_bans.emit(self.steamid)
+        self.message_toolbar_bans.emit(STEAMID)
         return self.open_json_file(self.file_bans_users)
 
-    def get_profile_status(self, steamid):
-        self.steamid = steamid
-        self.steamid_profile_json = (
-            f'date/{self.steamid}/{self.steamid}'
-            f'_profile_info_{self.today_date}.json')
-        self.url_profile_info = (
-            'https://api.steampowered.com/ISteamUser/'
-            f'GetPlayerSummaries/v2/?key={key}&steamids={self.steamid}')
-        self.directory = f"{self.steamid}"
+    def get_profile_status(self, STEAMID):
+        steamid_profile_json = (
+            f'date/{STEAMID}/{STEAMID}'
+            f'_profile_info_{TODAY}.json')
+        url_pfile_inf = f'{GPS}{STEAMID}'
+        self.directory = f"{STEAMID}"
         self.parent_dir = "date\\"
         self.path = os.path.join(self.parent_dir, self.directory)
         try:
@@ -1792,13 +1827,13 @@ class CheckVacThread(QtCore.QThread, MyWin):
 
         try:
             open(
-                f'date/{self.steamid}/{self.steamid}'
-                f'_profile_info_{self.today_date}.json', 'r')
+                f'date/{STEAMID}/{STEAMID}'
+                f'_profile_info_{TODAY}.json', 'r')
         except FileNotFoundError:
-            self.req_profile_info = requests.get(self.url_profile_info).json()
+            self.req_profile_info = requests.get(url_pfile_inf).json()
             self.write_json_file(
                 self.req_profile_info,
-                self.steamid_profile_json)
+                steamid_profile_json)
             # communityvisibilitystate 1
             # - the profile is not visible to
             # you (Private, Friends Only, etc),
@@ -1807,27 +1842,26 @@ class CheckVacThread(QtCore.QThread, MyWin):
             if self.req_profile_info['response']['players'] == []:
                 self.write_json_file(
                     'deleted',
-                    f'date/deleted_/{self.steamid}'
-                    f'_deleted_profile_info_{self.today_date}.json')
+                    f'date/deleted_/{STEAMID}'
+                    f'_deleted_profile_info_{TODAY}.json')
                 return 0
             if self.req_profile_info['response']['players'][0][CVS] == 1:
                 self.write_json_file(
                     self.req_profile_info,
-                    self.steamid_profile_json)
+                    steamid_profile_json)
                 return self.open_json_file(
-                    self.steamid_profile_json)
+                    steamid_profile_json)
             elif self.req_profile_info['response']['players'][0][CVS] == 3:
                 self.write_json_file(
                     self.req_profile_info,
-                    self.steamid_profile_json)
+                    steamid_profile_json)
                 return self.open_json_file(
-                    self.steamid_profile_json)
+                    steamid_profile_json)
 
         if os.path.exists(
-            f'date/{self.steamid}/{self.steamid}'
-            f'_profile_info_{self.today_date}.json'):
-            return self.open_json_file(
-                self.steamid_profile_json)
+                f'date/{STEAMID}/{STEAMID}'
+                f'_profile_info_{TODAY}.json'):
+            return self.open_json_file(steamid_profile_json)
 
 
 if __name__ == "__main__":

@@ -8,8 +8,8 @@ from res.codes import keys
 
 KEY = keys['key']
 
-today = date.today()
-today_date = today.strftime("%b-%d-%Y")
+# ! today = date.today()
+today_date = date.today()  # ! today.strftime("%b-%d-%Y")
 
 
 def write_json_file(date_to_write, fname):
