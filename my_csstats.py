@@ -49,7 +49,7 @@ GPB = (
 )
 
 DATE_FMT = '%b-%d-%Y'
-TODAY = date.today()  # ! .strftime(DATE_FMT)
+TODAY = date.today()
 UTF8 = 'utf-8'
 ALL_S = 'all_stats/all_stats.json'
 
@@ -926,7 +926,7 @@ class MyWin(QtWidgets.QMainWindow):
             f'date/{steamid}/{steamid}'
             f'_profile_info_{TODAY}.json')
         self.url_profile_stat = f'{GPS}{steamid}'
-        self.tmp_text_all = ''
+        tmp_text_all = ''
 
         try:
             open(self.file_profile_info, 'r')
@@ -940,9 +940,9 @@ class MyWin(QtWidgets.QMainWindow):
         if self.open_json(
             self.file_profile_info
         )['response']['players'] == []:
-            self.tmp_text_all = TEXT_NOT_FOUND
+            tmp_text_all = TEXT_NOT_FOUND
             self.statusBar().showMessage('ERR: 404 Not found!')
-            return self.tmp_text_all
+            return tmp_text_all
 
         #  * communityvisibilitystate
         #  * 1 - the profile is not visible to you (Private, Friends Only, etc)
@@ -956,8 +956,8 @@ class MyWin(QtWidgets.QMainWindow):
                 'you (Private, Friends Only, etc)')
             self.profile_data_json = self.open_json(
                 self.file_profile_info)
-            self.tmp_text_all = NO_INFO_USERS
-            return self.tmp_text_all
+            tmp_text_all = NO_INFO_USERS
+            return tmp_text_all
         elif self.file_profile_info_json['response']['players'][0][CVS] == 3:
             self.statusBar().showMessage(
                 'The profile is "Public", and the data is visible')
@@ -988,8 +988,8 @@ class MyWin(QtWidgets.QMainWindow):
             self.image.loadFromData(requests.get(self.profile_data_json['response']['players'][0]['avatarfull']).content)
             self.ui.label_avatar.setPixmap(QPixmap(self.image))
             self.ui.label_personaname.setText(self.profile_data_json['response']['players'][0]['personaname'] + ' (Приватный профиль)')
-            self.tmp_text_all = NO_INFO_USERS
-            return self.tmp_text_all
+            tmp_text_all = NO_INFO_USERS
+            return tmp_text_all
         elif communityvisibilitystate == 3:
             self.statis_profile = "Открытый"
             self.statusBar().showMessage(
@@ -1009,40 +1009,40 @@ class MyWin(QtWidgets.QMainWindow):
             else:
                 self.online_status = " (Offline)"
 
-        self.tmp_text_all += (
+        tmp_text_all += (
             'Стим ID - '
             f"{self.profile_data_json['response']['players'][0]['steamid']}\n"
             )
-        self.tmp_text_all += f'Статус профиля - {self.statis_profile}\n'
-        self.tmp_text_all += f'Статус Steam - {self.online_status}\n'
+        tmp_text_all += f'Статус профиля - {self.statis_profile}\n'
+        tmp_text_all += f'Статус Steam - {self.online_status}\n'
         tmp_name = (
             self.profile_data_json['response']
             ['players'][0]['personaname'])
-        self.tmp_text_all += f"Никнейм - {str(tmp_name)}\n"
+        tmp_text_all += f"Никнейм - {str(tmp_name)}\n"
         tmp_pfile = (
             self.profile_data_json['response']
             ['players'][0]['profileurl'])
-        self.tmp_text_all += f"Ссылка на профиль - {str(tmp_pfile)}\n"
+        tmp_text_all += f"Ссылка на профиль - {str(tmp_pfile)}\n"
         # TODO complite f-string next 3 rows
         # ! 06.08.2021
         try:
-            self.tmp_text_all += 'Последний раз выходил - ' + str(datetime.fromtimestamp(self.profile_data_json['response']['players'][0]['lastlogoff'])) + "\n"
+            tmp_text_all += 'Последний раз выходил - ' + str(datetime.fromtimestamp(self.profile_data_json['response']['players'][0]['lastlogoff'])) + "\n"
         except KeyError:
-            self.tmp_text_all += 'Последний раз выходил - ' + '██████████' + "\n"
+            tmp_text_all += 'Последний раз выходил - ██████████ \n'
         try:
-            self.tmp_text_all += 'Реальное имя - ' + str(self.profile_data_json['response']['players'][0]['realname']) + "\n"
+            tmp_text_all += 'Реальное имя - ' + str(self.profile_data_json['response']['players'][0]['realname']) + "\n"
         except KeyError:
-            self.tmp_text_all += 'Реальное имя - ' + '██████████' + "\n"
+            tmp_text_all += 'Реальное имя - ██████████ \n'
         tmp_timec = (
             datetime.fromtimestamp(
                 self.profile_data_json['response']
                 ['players'][0]['timecreated'])
         )
-        self.tmp_text_all += f'Дата создания профиля - {str(tmp_timec)}\n'
-        self.tmp_text_all += (
+        tmp_text_all += f'Дата создания профиля - {str(tmp_timec)}\n'
+        tmp_text_all += (
             f"Страна - {self.ui.label_loccountrycode.text()}\n")
 
-        return self.tmp_text_all
+        return tmp_text_all
 
     def open_new_profile(self) -> str:
         # TODO FIX not valid steam id in input
