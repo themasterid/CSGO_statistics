@@ -26,7 +26,6 @@ from MainCheckVacThread import CheckVacThread
 from MainCheckFriendsThread import CheckFriendsThread
 
 
-print(TEXT_NOT_FOUND)
 class MyWin(QtWidgets.QMainWindow):
     """Main Window for application csstats."""
 
@@ -141,11 +140,11 @@ class MyWin(QtWidgets.QMainWindow):
     def get_items_combobox_matches(self):
         self.match_items_data = self.open_json_file('all_stats/all_stats.json')
         self.match_items = []
-        for _, items in enumerate(self.match_items_data):
+        for vals, items in enumerate(self.match_items_data):
             self.match_items.append(
-                str(_ + 1) + ") " + self.match_items_data[
-                    _]['date'] + ", map |" + self.match_items_data[
-                        _]['competitive'] + "|")
+                str(vals + 1) + ") " + self.match_items_data[
+                    vals]['date'] + ", map |" + self.match_items_data[
+                        vals]['competitive'] + "|")
         return self.match_items
 
     def open_table_weapons(self):
