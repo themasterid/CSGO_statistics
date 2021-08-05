@@ -1,6 +1,9 @@
-import requests
-from res.codes import keys
+from typing import Optional
 
+import time
+import requests
+
+from res.codes import keys
 
 KEY = keys['key']
 GPS = (
@@ -13,24 +16,24 @@ class Record:
     """Класс для хранения значений."""
     def __init__(
         self,
-        steamid: str,
-        communityvisibilitystate: int,
-        profilestate: int,
-        personaname: str,
-        profileurl: str,
-        avatar: str,
-        avatarmedium: str,
-        avatarfull: str,
-        avatarhash: str,
-        lastlogoff: str,
-        personastate: int,
-        realname: str,
-        primaryclanid: str,
-        timecreated: int,
-        personastateflags: int,
-        loccountrycode: str,
-        locstatecode: str,
-        loccityid: int
+        steamid: Optional[str],
+        communityvisibilitystate: Optional[str],
+        profilestate: int = None,
+        personaname: str = None,
+        profileurl: str = None,
+        avatar: str = None,
+        avatarmedium: str = None,
+        avatarfull: str = None,
+        avatarhash: str = None,
+        lastlogoff: str = None,
+        personastate: int = None,
+        realname: str = None,
+        primaryclanid: str = None,
+        timecreated: int = None,
+        personastateflags: int = None,
+        loccountrycode: str = None,
+        locstatecode: str = None,
+        loccityid: int = None
     ) -> None:
         self.steamid = steamid
         self.communityvisibilitystate = communityvisibilitystate
@@ -53,88 +56,94 @@ class Record:
 
 class Calculator:
     """Класс для записи значений."""
-    def __init__(self, steam_id: str) -> None:
-        self.steam_id = steam_id
+    def __init__(self) -> None:
         self.records: list = []
 
-    def add_records(self, record: Record) -> None:
+    def add_records(self, record: Record):
         self.records.append(record)
 
 
-'''
-{
-    'response':
-    {'players': [
-        {
-            'steamid': '76561198084621617',
-            'communityvisibilitystate': 3,
-            'profilestate': 1,
-            'personaname': 'MΞCHANIC',
-            'profileurl': 'https://steamcommunity.com/id/Mechanic_ID/',
-            'avatar': 'https://steamcdn-a.akamaihd.net/steamcommunity/public/images/avatars/f2/f254aa627953de54330823a2995d314766e1d843.jpg',
-            'avatarmedium': 'https://steamcdn-a.akamaihd.net/steamcommunity/public/images/avatars/f2/f254aa627953de54330823a2995d314766e1d843_medium.jpg',
-            'avatarfull': 'https://steamcdn-a.akamaihd.net/steamcommunity/public/images/avatars/f2/f254aa627953de54330823a2995d314766e1d843_full.jpg',
-            'avatarhash': 'f254aa627953de54330823a2995d314766e1d843',
-            'lastlogoff': 1628124037,
-            'personastate': 1,
-            'realname': '███████████████',
-            'primaryclanid': '103582791429521408',
-            'timecreated': 1361598026,
-            'personastateflags': 0,
-            'loccountrycode': 'RU',
-            'locstatecode': '11',
-            'loccityid': 39665
-            }
-        ]
-}
-'''
+start_time = time.time()
+steamid_l = [
+    '76561198084621617',
+    '76561198084621618',
+    '76561198084621619',
+    '76561198084621620',
+    '76561198084621621',
+    '76561198084621622',
+    '66561198084621622'
+    ]
+calc = Calculator()
+for i in steamid_l:
+    url = f'{GPS}{i}'
+    r = requests.get(url).json()
+    print("--- %s seconds ---" % (time.time() - start_time))
+    if r['response']['players'] == []:
+        print('Not found!')
+        continue
 
+    steamid = r['response']['players'][0]['steamid']
+    communityvisibilitystate = r['response']['players'][0]['communityvisibilitystate']
+    try:
+        profilestate = r['response']['players'][0]['profilestate']
+    except KeyError:
+        profilestate = None
 
-steamid = '76561198084621617'
-url = f'{GPS}{steamid}'
-r = requests.get(url).json()
-print(r['response']['players'][0]['steamid'])
-print(r['response']['players'][0]['communityvisibilitystate'])
-print(r['response']['players'][0]['profilestate'])
-print(r['response']['players'][0]['personaname'])
-print(r['response']['players'][0]['profileurl'])
-print(r['response']['players'][0]['avatar'])
-print(r['response']['players'][0]['avatarmedium'])
-print(r['response']['players'][0]['avatarfull'])
-print(r['response']['players'][0]['avatarhash'])
-print(r['response']['players'][0]['lastlogoff'])
-print(r['response']['players'][0]['personastate'])
-print(r['response']['players'][0]['realname'])
-print(r['response']['players'][0]['primaryclanid'])
-print(r['response']['players'][0]['timecreated'])
-print(r['response']['players'][0]['personastateflags'])
-print(r['response']['players'][0]['loccountrycode'])
-print(r['response']['players'][0]['locstatecode'])
-print(r['response']['players'][0]['loccityid'])
+    personaname = r['response']['players'][0]['personaname']
+    profileurl = r['response']['players'][0]['profileurl']
+    avatar = r['response']['players'][0]['avatar']
+    avatarmedium = r['response']['players'][0]['avatarmedium']
+    avatarfull = r['response']['players'][0]['avatarfull']
+    avatarhash = r['response']['players'][0]['avatarhash']
+    try:
+        lastlogoff = r['response']['players'][0]['lastlogoff']
+    except KeyError:
+        lastlogoff = None
+    personastate = r['response']['players'][0]['personastate']
+    try:
+        realname = r['response']['players'][0]['realname']
+    except KeyError:
+        realname = None
+    primaryclanid = r['response']['players'][0]['primaryclanid']
+    timecreated = r['response']['players'][0]['timecreated']
+    personastateflags = r['response']['players'][0]['personastateflags']
+    try:
+        loccountrycode = r['response']['players'][0]['loccountrycode']
+    except KeyError:
+        loccountrycode = None
+    try:
+        locstatecode = r['response']['players'][0]['locstatecode']
+    except KeyError:
+        locstatecode = None
+    try:
+        loccityid = r['response']['players'][0]['loccityid']
+    except KeyError:
+        loccityid = None
 
-calc = Calculator(steamid)
-'''
-calc.add_records(
-    Record(
-        steamid="76561198084621617",
-        communityvisibilitystate=3,
-        profilestate=1,
-        personaname="MΞCHANIC",
-        profileurl="https://steamcommunity.com/id/Mechanic_ID/",
-        avatar="https://steamcdn-a.akamaihd.net/steamcommunity/public/images/avatars/f2/f254aa627953de54330823a2995d314766e1d843.jpg",
-        avatarmedium="https://steamcdn-a.akamaihd.net/steamcommunity/public/images/avatars/f2/f254aa627953de54330823a2995d314766e1d843_medium.jpg",
-        avatarfull="https://steamcdn-a.akamaihd.net/steamcommunity/public/images/avatars/f2/f254aa627953de54330823a2995d314766e1d843_full.jpg",
-        avatarhash="f254aa627953de54330823a2995d314766e1d843",
-        lastlogoff=1628124037,
-        personastate=1,
-        realname="███████████████",
-        primaryclanid="103582791429521408",
-        timecreated=1361598026,
-        personastateflags=0,
-        loccountrycode="RU",
-        locstatecode="11",
-        loccityid=39665
+    calc.add_records(
+        Record(
+            steamid,
+            communityvisibilitystate,
+            profilestate,
+            personaname,
+            profileurl,
+            avatar,
+            avatarmedium,
+            avatarfull,
+            avatarhash,
+            lastlogoff,
+            personastate,
+            realname,
+            primaryclanid,
+            timecreated,
+            personastateflags,
+            loccountrycode,
+            locstatecode,
+            loccityid
+            )
         )
-    )
-print(calc.records[0].__dict__)
-'''
+
+# for i in calc.records:
+#    print(i.__dict__)
+#    print()
+print("--- %s seconds ---" % (time.time() - start_time))
