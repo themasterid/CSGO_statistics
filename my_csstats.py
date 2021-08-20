@@ -1,23 +1,20 @@
 import json
-import sys
-
-from typing import Union, List
 import os
-from os.path import isfile, join
-from datetime import date
-from os import listdir
-from datetime import datetime
-from datetime import timedelta
+import sys
 import webbrowser
-import requests
-from PyQt5 import QtWidgets, QtCore
-from PyQt5.QtWidgets import QTableWidgetItem
-from PyQt5.QtGui import QImage, QPixmap
+from datetime import date, datetime, timedelta
+from os import listdir
+from os.path import isfile, join
+from typing import List, Union
 
-from res.mainwindows import Ui_MainWindow
+import requests
+from PyQt5 import QtCore, QtWidgets
+from PyQt5.QtGui import QImage, QPixmap
+from PyQt5.QtWidgets import QTableWidgetItem
 
 from get_steam_avatar import create_avatar
 from res.codes import keys
+from res.mainwindows import Ui_MainWindow
 
 TEXT_NOT_FOUND = '''
             Извините!\n
@@ -1734,8 +1731,11 @@ class CheckVacThread(QtCore.QThread, MyWin):
         for count in range(len(date_match_users)):
             for i in range(10):
                 vacban_sts_all.append(
-                    [date_match_users[count]['team'][i]['steamid64'],
-                     date_match_users[count]['date']])
+                    [
+                        date_match_users[count]['team'][i]['steamid64'],
+                        date_match_users[count]['date']
+                    ]
+                )
 
         for line in vacban_sts_all:
             if line not in all_users:
