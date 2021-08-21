@@ -73,7 +73,7 @@ SG18 = 'img/ranks/skillgroup18.png'
 
 
 class MyWin(QtWidgets.QMainWindow):
-    """Main Window for application csstats."""
+    '''Main Window for application csstats.'''
 
     def __init__(self, parent=None):
         QtWidgets.QWidget.__init__(self, parent)
@@ -169,7 +169,7 @@ class MyWin(QtWidgets.QMainWindow):
         except TypeError:
             return 'ERR: not int!'
 
-        url: str = f"https://steamcommunity.com/profiles/{item.text()}"
+        url: str = f'https://steamcommunity.com/profiles/{item.text()}'
         return webbrowser.open(url)
 
     # ! DONE !
@@ -903,8 +903,11 @@ class MyWin(QtWidgets.QMainWindow):
             self.ui.label_loccountrycode.setText(text_location)
             return text_location
         try:
-            loccityid = self.profile_data_json['response']['players'][0]['loccityid']
-            self.location_file_3 = self.open_json(self.load_location_from_file_3)
+            loccityid = (
+                self.profile_data_json['response']['players'][0]['loccityid']
+            )
+            self.location_file_3 = self.open_json(
+                self.load_location_from_file_3)
             for _ in self.location_file_3:
                 if _['cityid'] == loccityid:
                     text_location += _['cityname']
@@ -921,25 +924,25 @@ class MyWin(QtWidgets.QMainWindow):
         create_avatar(steamid)
         self.file_profile_info = (
             f'date/{steamid}/{steamid}'
-            f'_profile_info_{TODAY}.json')
-        self.url_profile_stat = f'{GPS}{steamid}'
+            f'_profile_info_{TODAY}.json'
+        )
+        url_profile_stat = f'{GPS}{steamid}'
         tmp_text_all = ''
 
         try:
             open(self.file_profile_info, 'r')
         except FileNotFoundError:
-            self.file_profile_info_req = requests.get(
-                self.url_profile_stat).json()
+            f_pfile_info_req = requests.get(
+                url_profile_stat).json()
             self.write_json_file(
-                self.file_profile_info_req,
+                f_pfile_info_req,
                 self.file_profile_info)
 
         if self.open_json(
             self.file_profile_info
         )['response']['players'] == []:
-            tmp_text_all = TEXT_NOT_FOUND
             self.statusBar().showMessage('ERR: 404 Not found!')
-            return tmp_text_all
+            return TEXT_NOT_FOUND
 
         #  * communityvisibilitystate
         #  * 1 - the profile is not visible to you (Private, Friends Only, etc)
@@ -953,8 +956,7 @@ class MyWin(QtWidgets.QMainWindow):
                 'you (Private, Friends Only, etc)')
             self.profile_data_json = self.open_json(
                 self.file_profile_info)
-            tmp_text_all = NO_INFO_USERS
-            return tmp_text_all
+            return NO_INFO_USERS
         elif self.file_profile_info_json['response']['players'][0][CVS] == 3:
             self.statusBar().showMessage(
                 'The profile is "Public", and the data is visible')
@@ -975,16 +977,26 @@ class MyWin(QtWidgets.QMainWindow):
             'response']['players'][0]['personastate']
         #  1 - the profile is not visible to you (Private, Friends Only, etc),
         #  3 - the profile is "Public", and the data is visible.
-        communityvisibilitystate = self.file_profile_info_json['response']['players'][0][CVS]
+        communityvisibilitystate = (
+            self.file_profile_info_json['response']['players'][0][CVS])
 
         if communityvisibilitystate == 1:
             self.statis_profile = "Закрытый"
-            self.statusBar().showMessage('The profile is not visible to you (Private, Friends Only, etc)')
-            # FIX THIS ADD AVATAR FROM DISC           
+            self.statusBar().showMessage(
+                'The profile is not visible to you'
+                '(Private, Friends Only, etc)'
+            )
+            # FIX THIS ADD AVATAR FROM DISC
             self.image = QImage()
-            self.image.loadFromData(requests.get(self.profile_data_json['response']['players'][0]['avatarfull']).content)
+            self.image.loadFromData(
+                requests.get(
+                    self.profile_data_json['response']['players'][0]['avatarfull']
+                ).content)
             self.ui.label_avatar.setPixmap(QPixmap(self.image))
-            self.ui.label_personaname.setText(self.profile_data_json['response']['players'][0]['personaname'] + ' (Приватный профиль)')
+            self.ui.label_personaname.setText(
+                self.profile_data_json['response']['players'][0]['personaname'] +
+                ' (Приватный профиль)'
+            )
             tmp_text_all = NO_INFO_USERS
             return tmp_text_all
         elif communityvisibilitystate == 3:
@@ -1027,7 +1039,7 @@ class MyWin(QtWidgets.QMainWindow):
         except KeyError:
             tmp_text_all += 'Последний раз выходил - ██████████ \n'
         try:
-            tmp_text_all += 'Реальное имя - ' + str(self.profile_data_json['response']['players'][0]['realname']) + "\n"
+            tmp_text_all += f'Реальное имя - {str(self.profile_data_json["response"]["players"][0]["realname"])}\n'
         except KeyError:
             tmp_text_all += 'Реальное имя - ██████████ \n'
         tmp_timec = (
@@ -1331,278 +1343,299 @@ class CheckWeaponsThread(QtCore.QThread, MyWin):
             self.find_key_by_value('total_shots_xm1014', steamid),
             self.find_key_by_value('total_hits_xm1014', steamid)]
 
-        total_summ = sum(
-            [
-                total_ksh_ak47[0],
-                total_ksh_aug[0],
-                total_ksh_awp[0],
-                total_ksh_deagle[0],
-                total_ksh_elite[0],
-                total_ksh_famas[0],
-                total_ksh_fiveseven[0],
-                total_ksh_g3sg1[0],
-                total_ksh_galilar[0],
-                total_ksh_glock[0],
-                total_ksh_m249[0],
-                total_ksh_m4a1[0],
-                total_ksh_mac10[0],
-                total_ksh_mag7[0],
-                total_ksh_mp7[0],
-                total_ksh_mp9[0],
-                total_ksh_negev[0],
-                total_ksh_nova[0],
-                total_ksh_hkp2000[0],
-                total_ksh_p250[0],
-                total_ksh_p90[0],
-                total_ksh_bizon[0],
-                total_ksh_sawedoff[0],
-                total_ksh_scar20[0],
-                total_ksh_sg556[0],
-                total_ksh_ssg08[0],
-                total_ksh_tec9[0],
-                total_ksh_ump45[0],
-                total_ksh_xm1014[0]
-            ]
+        total_summ = sum([
+            total_ksh_ak47[0],
+            total_ksh_aug[0],
+            total_ksh_awp[0],
+            total_ksh_deagle[0],
+            total_ksh_elite[0],
+            total_ksh_famas[0],
+            total_ksh_fiveseven[0],
+            total_ksh_g3sg1[0],
+            total_ksh_galilar[0],
+            total_ksh_glock[0],
+            total_ksh_m249[0],
+            total_ksh_m4a1[0],
+            total_ksh_mac10[0],
+            total_ksh_mag7[0],
+            total_ksh_mp7[0],
+            total_ksh_mp9[0],
+            total_ksh_negev[0],
+            total_ksh_nova[0],
+            total_ksh_hkp2000[0],
+            total_ksh_p250[0],
+            total_ksh_p90[0],
+            total_ksh_bizon[0],
+            total_ksh_sawedoff[0],
+            total_ksh_scar20[0],
+            total_ksh_sg556[0],
+            total_ksh_ssg08[0],
+            total_ksh_tec9[0],
+            total_ksh_ump45[0],
+            total_ksh_xm1014[0]]
         )
 
-        self.date_weapons = [(
-            'AK-47',
-            str(round(total_ksh_ak47[2] / total_ksh_ak47[1] * 100, 2)) + "%",
-            str(round(total_ksh_ak47[0] / total_ksh_ak47[2] * 100, 2)) + "%",
-            str(total_ksh_ak47[0]),
-            str(total_ksh_ak47[2]),
-            str(total_ksh_ak47[1]),
-            str(round(total_ksh_ak47[0] / total_summ * 100, 2)) + "%"),
-            ('AUG',
-             str(round(total_ksh_aug[2] / total_ksh_aug[1] * 100, 2)) + "%",
-             str(round(total_ksh_aug[0] / total_ksh_aug[2] * 100, 2)) + "%",
-             str(total_ksh_aug[0]),
-             str(total_ksh_aug[2]),
-             str(total_ksh_aug[1]),
-             str(round(total_ksh_aug[0] / total_summ * 100, 2)) + "%"),
-            ('AWP',
-             str(round(total_ksh_awp[2] / total_ksh_awp[1] * 100, 2)) + "%",
-             str(round(total_ksh_awp[0] / total_ksh_awp[2] * 100, 2)) + "%",
-             str(total_ksh_awp[0]),
-             str(total_ksh_awp[2]),
-             str(total_ksh_awp[1]),
-             str(round(total_ksh_awp[0] / total_summ * 100, 2)) + "%"),
-            ('Desert Eagle/R8',
-             str(round(total_ksh_deagle[2] /
-                       total_ksh_deagle[1] * 100, 2)) + "%",
-             str(round(total_ksh_deagle[0] /
-                       total_ksh_deagle[2] * 100, 2)) + "%",
-             str(total_ksh_deagle[0]),
-             str(total_ksh_deagle[2]),
-             str(total_ksh_deagle[1]),
-             str(round(total_ksh_deagle[0] / total_summ * 100, 2)) + "%"),
-            ('Dual Berettas',
-             str(round(total_ksh_elite[2] /
-                       total_ksh_elite[1] * 100, 2)) + "%",
-             str(round(total_ksh_elite[0] /
-                       total_ksh_elite[2] * 100, 2)) + "%",
-             str(total_ksh_elite[0]),
-             str(total_ksh_elite[2]),
-             str(total_ksh_elite[1]),
-             str(round(total_ksh_elite[0] / total_summ * 100, 2)) + "%"),
-            ('Famas',
-             str(round(total_ksh_famas[2] /
-                       total_ksh_famas[1] * 100, 2)) + "%",
-             str(round(total_ksh_famas[0] /
-                       total_ksh_famas[2] * 100, 2)) + "%",
-             str(total_ksh_famas[0]),
-             str(total_ksh_famas[2]),
-             str(total_ksh_famas[1]),
-             str(round(total_ksh_famas[0] / total_summ * 100, 2)) + "%"),
-            ('Five-SeveN',
-             str(round(total_ksh_fiveseven[2] /
-                       total_ksh_fiveseven[1] * 100, 2)) + "%",
-             str(round(total_ksh_fiveseven[0] /
-                       total_ksh_fiveseven[2] * 100, 2)) + "%",
-             str(total_ksh_fiveseven[0]),
-             str(total_ksh_fiveseven[2]),
-             str(total_ksh_fiveseven[1]),
-             str(round(total_ksh_fiveseven[0] / total_summ * 100, 2)) + "%"),
+        self.date_weapons = [
+            (
+                'AK-47',
+                str(round(total_ksh_ak47[2] / total_ksh_ak47[1] * 100, 2)
+                    ) + '%',
+                str(
+                    round(total_ksh_ak47[0] / total_ksh_ak47[2] * 100, 2)
+                    ) + '%',
+                str(total_ksh_ak47[0]),
+                str(total_ksh_ak47[2]),
+                str(total_ksh_ak47[1]),
+                str(round(total_ksh_ak47[0] / total_summ * 100, 2)) + '%'),
+            (
+                'AUG',
+                str(round(total_ksh_aug[2] / total_ksh_aug[1] * 100, 2)) + '%',
+                str(round(total_ksh_aug[0] / total_ksh_aug[2] * 100, 2)) + '%',
+                str(total_ksh_aug[0]),
+                str(total_ksh_aug[2]),
+                str(total_ksh_aug[1]),
+                str(round(total_ksh_aug[0] / total_summ * 100, 2)) + '%'),
+            (
+                'AWP',
+                str(round(total_ksh_awp[2] / total_ksh_awp[1] * 100, 2)) + '%',
+                str(round(total_ksh_awp[0] / total_ksh_awp[2] * 100, 2)) + '%',
+                str(total_ksh_awp[0]),
+                str(total_ksh_awp[2]),
+                str(total_ksh_awp[1]),
+                str(round(total_ksh_awp[0] / total_summ * 100, 2)) + '%'),
+            (
+                'Desert Eagle/R8',
+                str(round(total_ksh_deagle[2] /
+                          total_ksh_deagle[1] * 100, 2)) + '%',
+                str(round(total_ksh_deagle[0] /
+                          total_ksh_deagle[2] * 100, 2)) + '%',
+                str(total_ksh_deagle[0]),
+                str(total_ksh_deagle[2]),
+                str(total_ksh_deagle[1]),
+                str(round(total_ksh_deagle[0] / total_summ * 100, 2)) + '%'),
+            (
+                'Dual Berettas',
+                str(round(total_ksh_elite[2] /
+                          total_ksh_elite[1] * 100, 2)) + '%',
+                str(round(total_ksh_elite[0] /
+                          total_ksh_elite[2] * 100, 2)) + '%',
+                str(total_ksh_elite[0]),
+                str(total_ksh_elite[2]),
+                str(total_ksh_elite[1]),
+                str(round(total_ksh_elite[0] / total_summ * 100, 2)) + '%'),
+            (
+                'Famas',
+                str(
+                    round(total_ksh_famas[2] / total_ksh_famas[1] * 100, 2)
+                    ) + '%',
+                str(
+                    round(total_ksh_famas[0] / total_ksh_famas[2] * 100, 2)
+                    ) + '%',
+                str(total_ksh_famas[0]),
+                str(total_ksh_famas[2]),
+                str(total_ksh_famas[1]),
+                str(round(total_ksh_famas[0] / total_summ * 100, 2)) + '%'),
+            (
+                'Five-SeveN',
+                str(round(
+                    total_ksh_fiveseven[2] / total_ksh_fiveseven[1] * 100, 2
+                    )
+                    ) + '%',
+                str(round(
+                    total_ksh_fiveseven[0] / total_ksh_fiveseven[2] * 100, 2
+                    )
+                    ) + '%',
+                str(total_ksh_fiveseven[0]),
+                str(total_ksh_fiveseven[2]),
+                str(total_ksh_fiveseven[1]),
+                str(
+                    round(
+                        total_ksh_fiveseven[0] / total_summ * 100, 2
+                        )) + '%'),
             ('G3SG1',
              str(round(total_ksh_g3sg1[2] /
-                       total_ksh_g3sg1[1] * 100, 2)) + "%",
+                       total_ksh_g3sg1[1] * 100, 2)) + '%',
              str(round(total_ksh_g3sg1[0] /
-                       total_ksh_g3sg1[2] * 100, 2)) + "%",
+                       total_ksh_g3sg1[2] * 100, 2)) + '%',
              str(total_ksh_g3sg1[0]),
              str(total_ksh_g3sg1[2]),
              str(total_ksh_g3sg1[1]),
-             str(round(total_ksh_g3sg1[0] / total_summ * 100, 2)) + "%"),
+             str(round(total_ksh_g3sg1[0] / total_summ * 100, 2)) + '%'),
             ('Galil AR',
              str(round(total_ksh_galilar[2] /
-                       total_ksh_galilar[1] * 100, 2)) + "%",
+                       total_ksh_galilar[1] * 100, 2)) + '%',
              str(round(total_ksh_galilar[0] /
-                       total_ksh_galilar[2] * 100, 2)) + "%",
+                       total_ksh_galilar[2] * 100, 2)) + '%',
              str(total_ksh_galilar[0]),
              str(total_ksh_galilar[2]),
              str(total_ksh_galilar[1]),
-             str(round(total_ksh_galilar[0] / total_summ * 100, 2)) + "%"),
+             str(round(total_ksh_galilar[0] / total_summ * 100, 2)) + '%'),
             ('Glock-18',
              str(round(total_ksh_glock[2] /
-                       total_ksh_glock[1] * 100, 2)) + "%",
+                       total_ksh_glock[1] * 100, 2)) + '%',
              str(round(total_ksh_glock[0] /
-                       total_ksh_glock[2] * 100, 2)) + "%",
+                       total_ksh_glock[2] * 100, 2)) + '%',
              str(total_ksh_glock[0]),
              str(total_ksh_glock[2]),
              str(total_ksh_glock[1]),
-             str(round(total_ksh_glock[0] / total_summ * 100, 2)) + "%"),
+             str(round(total_ksh_glock[0] / total_summ * 100, 2)) + '%'),
             ('M249',
-             str(round(total_ksh_m249[2] / total_ksh_m249[1] * 100, 2)) + "%",
-             str(round(total_ksh_m249[0] / total_ksh_m249[2] * 100, 2)) + "%",
+             str(round(total_ksh_m249[2] / total_ksh_m249[1] * 100, 2)) + '%',
+             str(round(total_ksh_m249[0] / total_ksh_m249[2] * 100, 2)) + '%',
              str(total_ksh_m249[0]),
              str(total_ksh_m249[2]),
              str(total_ksh_m249[1]),
-             str(round(total_ksh_m249[0] / total_summ * 100, 2)) + "%"),
+             str(round(total_ksh_m249[0] / total_summ * 100, 2)) + '%'),
             ('M4A4/M4A1-S',
-             str(round(total_ksh_m4a1[2] / total_ksh_m4a1[1] * 100, 2)) + "%",
-             str(round(total_ksh_m4a1[0] / total_ksh_m4a1[2] * 100, 2)) + "%",
+             str(round(total_ksh_m4a1[2] / total_ksh_m4a1[1] * 100, 2)) + '%',
+             str(round(total_ksh_m4a1[0] / total_ksh_m4a1[2] * 100, 2)) + '%',
              str(total_ksh_m4a1[0]),
              str(total_ksh_m4a1[2]),
              str(total_ksh_m4a1[1]),
-             str(round(total_ksh_m4a1[0] / total_summ * 100, 2)) + "%"),
+             str(round(total_ksh_m4a1[0] / total_summ * 100, 2)) + '%'),
             ('MAC-10',
              str(round(total_ksh_mac10[2] /
-                       total_ksh_mac10[1] * 100, 2)) + "%",
+                       total_ksh_mac10[1] * 100, 2)) + '%',
              str(round(total_ksh_mac10[0] /
-                       total_ksh_mac10[2] * 100, 2)) + "%",
+                       total_ksh_mac10[2] * 100, 2)) + '%',
              str(total_ksh_mac10[0]),
              str(total_ksh_mac10[2]),
              str(total_ksh_mac10[1]),
-             str(round(total_ksh_mac10[0] / total_summ * 100, 2)) + "%"),
+             str(round(total_ksh_mac10[0] / total_summ * 100, 2)) + '%'),
             ('MAG7',
-             str(round(total_ksh_mag7[2] / total_ksh_mag7[1] * 100, 2)) + "%",
-             str(round(total_ksh_mag7[0] / total_ksh_mag7[2] * 100, 2)) + "%",
+             str(round(total_ksh_mag7[2] / total_ksh_mag7[1] * 100, 2)) + '%',
+             str(round(total_ksh_mag7[0] / total_ksh_mag7[2] * 100, 2)) + '%',
              str(total_ksh_mag7[0]),
              str(total_ksh_mag7[2]),
              str(total_ksh_mag7[1]),
-             str(round(total_ksh_mag7[0] / total_summ * 100, 2)) + "%"),
+             str(round(total_ksh_mag7[0] / total_summ * 100, 2)) + '%'),
             ('MP7/MP5-SD',
-             str(round(total_ksh_mp7[2] / total_ksh_mp7[1] * 100, 2)) + "%",
-             str(round(total_ksh_mp7[0] / total_ksh_mp7[2] * 100, 2)) + "%",
+             str(round(total_ksh_mp7[2] / total_ksh_mp7[1] * 100, 2)) + '%',
+             str(round(total_ksh_mp7[0] / total_ksh_mp7[2] * 100, 2)) + '%',
              str(total_ksh_mp7[0]),
              str(total_ksh_mp7[2]),
              str(total_ksh_mp7[1]),
-             str(round(total_ksh_mp7[0] / total_summ * 100, 2)) + "%"),
+             str(round(total_ksh_mp7[0] / total_summ * 100, 2)) + '%'),
             ('MP9',
-             str(round(total_ksh_mp9[2] / total_ksh_mp9[1] * 100, 2)) + "%",
-             str(round(total_ksh_mp9[0] / total_ksh_mp9[2] * 100, 2)) + "%",
+             str(round(total_ksh_mp9[2] / total_ksh_mp9[1] * 100, 2)) + '%',
+             str(round(total_ksh_mp9[0] / total_ksh_mp9[2] * 100, 2)) + '%',
              str(total_ksh_mp9[0]),
              str(total_ksh_mp9[2]),
              str(total_ksh_mp9[1]),
-             str(round(total_ksh_mp9[0] / total_summ * 100, 2)) + "%"),
+             str(round(total_ksh_mp9[0] / total_summ * 100, 2)) + '%'),
             ('Negev',
              str(round(total_ksh_negev[2] /
-                       total_ksh_negev[1] * 100, 2)) + "%",
+                       total_ksh_negev[1] * 100, 2)) + '%',
              str(round(total_ksh_negev[0] /
-                       total_ksh_negev[2] * 100, 2)) + "%",
+                       total_ksh_negev[2] * 100, 2)) + '%',
              str(total_ksh_negev[0]),
              str(total_ksh_negev[2]),
              str(total_ksh_negev[1]),
-             str(round(total_ksh_negev[0] / total_summ * 100, 2)) + "%"),
+             str(round(total_ksh_negev[0] / total_summ * 100, 2)) + '%'),
             ('Nova',
-             str(round(total_ksh_nova[2] / total_ksh_nova[1] * 100, 2)) + "%",
-             str(round(total_ksh_nova[0] / total_ksh_nova[2] * 100, 2)) + "%",
+             str(round(total_ksh_nova[2] / total_ksh_nova[1] * 100, 2)) + '%',
+             str(round(total_ksh_nova[0] / total_ksh_nova[2] * 100, 2)) + '%',
              str(total_ksh_nova[0]),
              str(total_ksh_nova[2]),
              str(total_ksh_nova[1]),
-             str(round(total_ksh_nova[0] / total_summ * 100, 2)) + "%"),
+             str(round(total_ksh_nova[0] / total_summ * 100, 2)) + '%'),
             ('P2000/USP-S',
              str(round(total_ksh_hkp2000[2] /
-                       total_ksh_hkp2000[1] * 100, 2)) + "%",
+                       total_ksh_hkp2000[1] * 100, 2)) + '%',
              str(round(total_ksh_hkp2000[0] /
-                       total_ksh_hkp2000[2] * 100, 2)) + "%",
+                       total_ksh_hkp2000[2] * 100, 2)) + '%',
              str(total_ksh_hkp2000[0]),
              str(total_ksh_hkp2000[2]),
              str(total_ksh_hkp2000[1]),
-             str(round(total_ksh_hkp2000[0] / total_summ * 100, 2)) + "%"),
+             str(round(total_ksh_hkp2000[0] / total_summ * 100, 2)) + '%'),
             ('P250/CZ75-Auto',
-             str(round(total_ksh_p250[2] / total_ksh_p250[1] * 100, 2)) + "%",
-             str(round(total_ksh_p250[0] / total_ksh_p250[2] * 100, 2)) + "%",
+             str(round(total_ksh_p250[2] / total_ksh_p250[1] * 100, 2)) + '%',
+             str(round(total_ksh_p250[0] / total_ksh_p250[2] * 100, 2)) + '%',
              str(total_ksh_p250[0]),
              str(total_ksh_p250[2]),
              str(total_ksh_p250[1]),
-             str(round(total_ksh_p250[0] / total_summ * 100, 2)) + "%"),
+             str(round(total_ksh_p250[0] / total_summ * 100, 2)) + '%'),
             ('P90',
-             str(round(total_ksh_p90[2] / total_ksh_p90[1] * 100, 2)) + "%",
-             str(round(total_ksh_p90[0] / total_ksh_p90[2] * 100, 2)) + "%",
+             str(round(total_ksh_p90[2] / total_ksh_p90[1] * 100, 2)) + '%',
+             str(round(total_ksh_p90[0] / total_ksh_p90[2] * 100, 2)) + '%',
              str(total_ksh_p90[0]),
              str(total_ksh_p90[2]),
              str(total_ksh_p90[1]),
-             str(round(total_ksh_p90[0] / total_summ * 100, 2)) + "%"),
+             str(round(total_ksh_p90[0] / total_summ * 100, 2)) + '%'),
             ('PP-Bizon',
              str(round(total_ksh_bizon[2] /
-                       total_ksh_bizon[1] * 100, 2)) + "%",
+                       total_ksh_bizon[1] * 100, 2)) + '%',
              str(round(total_ksh_bizon[0] /
-                       total_ksh_bizon[2] * 100, 2)) + "%",
+                       total_ksh_bizon[2] * 100, 2)) + '%',
              str(total_ksh_bizon[0]),
              str(total_ksh_bizon[2]),
              str(total_ksh_bizon[1]),
-             str(round(total_ksh_bizon[0] / total_summ * 100, 2)) + "%"),
+             str(round(total_ksh_bizon[0] / total_summ * 100, 2)) + '%'),
             ('Sawed-Off',
              str(round(total_ksh_sawedoff[2] /
-                       total_ksh_sawedoff[1] * 100, 2)) + "%",
+                       total_ksh_sawedoff[1] * 100, 2)) + '%',
              str(round(total_ksh_sawedoff[0] /
-                       total_ksh_sawedoff[2] * 100, 2)) + "%",
+                       total_ksh_sawedoff[2] * 100, 2)) + '%',
              str(total_ksh_sawedoff[0]),
              str(total_ksh_sawedoff[2]),
              str(total_ksh_sawedoff[1]),
-             str(round(total_ksh_sawedoff[0] / total_summ * 100, 2)) + "%"),
+             str(round(total_ksh_sawedoff[0] / total_summ * 100, 2)) + '%'),
             ('SCAR-20',
              str(round(total_ksh_scar20[2] /
-                       total_ksh_scar20[1] * 100, 2)) + "%",
+                       total_ksh_scar20[1] * 100, 2)) + '%',
              str(round(total_ksh_scar20[0] /
-                       total_ksh_scar20[2] * 100, 2)) + "%",
+                       total_ksh_scar20[2] * 100, 2)) + '%',
              str(total_ksh_scar20[0]),
              str(total_ksh_scar20[2]),
              str(total_ksh_scar20[1]),
-             str(round(total_ksh_scar20[0] / total_summ * 100, 2)) + "%"),
+             str(round(total_ksh_scar20[0] / total_summ * 100, 2)) + '%'),
             ('SG 553',
              str(round(total_ksh_sg556[2] /
-                       total_ksh_sg556[1] * 100, 2)) + "%",
+                       total_ksh_sg556[1] * 100, 2)) + '%',
              str(round(total_ksh_sg556[0] /
-                       total_ksh_sg556[2] * 100, 2)) + "%",
+                       total_ksh_sg556[2] * 100, 2)) + '%',
              str(total_ksh_sg556[0]),
              str(total_ksh_sg556[2]),
              str(total_ksh_sg556[1]),
-             str(round(total_ksh_sg556[0] / total_summ * 100, 2)) + "%"),
+             str(round(total_ksh_sg556[0] / total_summ * 100, 2)) + '%'),
             ('SSG 08',
              str(round(total_ksh_ssg08[2] /
-                       total_ksh_ssg08[1] * 100, 2)) + "%",
+                       total_ksh_ssg08[1] * 100, 2)) + '%',
              str(round(total_ksh_ssg08[0] /
-                       total_ksh_ssg08[2] * 100, 2)) + "%",
+                       total_ksh_ssg08[2] * 100, 2)) + '%',
              str(total_ksh_ssg08[0]),
              str(total_ksh_ssg08[2]),
              str(total_ksh_ssg08[1]),
-             str(round(total_ksh_ssg08[0] / total_summ * 100, 2)) + "%"),
+             str(round(total_ksh_ssg08[0] / total_summ * 100, 2)) + '%'),
             ('TEC9',
-             str(round(total_ksh_tec9[2] / total_ksh_tec9[1] * 100, 2)) + "%",
-             str(round(total_ksh_tec9[0] / total_ksh_tec9[2] * 100, 2)) + "%",
+             str(round(total_ksh_tec9[2] / total_ksh_tec9[1] * 100, 2)) + '%',
+             str(round(total_ksh_tec9[0] / total_ksh_tec9[2] * 100, 2)) + '%',
              str(total_ksh_tec9[0]),
              str(total_ksh_tec9[2]),
              str(total_ksh_tec9[1]),
-             str(round(total_ksh_tec9[0] / total_summ * 100, 2)) + "%"),
+             str(round(total_ksh_tec9[0] / total_summ * 100, 2)) + '%'),
             ('UMP45',
              str(round(total_ksh_ump45[2] /
-                       total_ksh_ump45[1] * 100, 2)) + "%",
+                       total_ksh_ump45[1] * 100, 2)) + '%',
              str(round(total_ksh_ump45[0] /
-                       total_ksh_ump45[2] * 100, 2)) + "%",
+                       total_ksh_ump45[2] * 100, 2)) + '%',
              str(total_ksh_ump45[0]),
              str(total_ksh_ump45[2]),
              str(total_ksh_ump45[1]),
-             str(round(total_ksh_ump45[0] / total_summ * 100, 2)) + "%"),
-            ('XM1014',
-             str(round(total_ksh_xm1014[2] /
-                       total_ksh_xm1014[1] * 100, 2)) + "%",
-             str(round(total_ksh_xm1014[0] /
-                       total_ksh_xm1014[2] * 100, 2)) + "%",
-             str(total_ksh_xm1014[0]),
-             str(total_ksh_xm1014[2]),
-             str(total_ksh_xm1014[1]),
-             str(round(total_ksh_xm1014[0] / total_summ * 100, 2)) + "%")]
+             str(round(total_ksh_ump45[0] / total_summ * 100, 2)) + '%'),
+            (
+                'XM1014',
+                str(
+                    round(total_ksh_xm1014[2] / total_ksh_xm1014[1] * 100, 2)
+                    ) + '%',
+                str(
+                    round(total_ksh_xm1014[0] / total_ksh_xm1014[2] * 100, 2)
+                    ) + '%',
+                str(total_ksh_xm1014[0]),
+                str(total_ksh_xm1014[2]),
+                str(total_ksh_xm1014[1]),
+                str(round(total_ksh_xm1014[0] / total_summ * 100, 2)) + '%'
+            )]
         return self.date_weapons
 
     def find_key_by_value(self, finded, steamid):
@@ -1616,7 +1649,7 @@ class CheckWeaponsThread(QtCore.QThread, MyWin):
 
         try:
             open(get_statistic_json, 'r', encoding=UTF8)
-        except:
+        except FileNotFoundError:
             self.req_statistic = requests.get(url_statistic).json()
             self.write_json_file(self.req_statistic, get_statistic_json)
 
@@ -1683,27 +1716,63 @@ class CheckFriendsThread(QtCore.QThread, MyWin):
                     self.req_friends,
                     self.friend_steamid_json)
                 self.friend = self.open_json(self.friend_steamid_json)
-                friend_info.append([
-                    s_id_friend,
-                    self.friend['response']['players'][0]['personaname'],
-                    self.friend_since_friend,
-                    'VAC БАН' if vac_status['players'][0]['VACBanned'] else '',
-                    'Community Banned' if vac_status['players'][0]["CommunityBanned"] else '',
-                    "" if vac_status['players'][0]["EconomyBan"] == "none" else "Economy Ban",
-                    str(vac_status['players'][0]["NumberOfGameBans"]) if vac_status['players'][0]["NumberOfGameBans"] else ""])
+                friend_info.append(
+                    [
+                        s_id_friend,
+                        self.friend['response']['players'][0]['personaname'],
+                        self.friend_since_friend,
+                        (
+                            'VAC БАН'
+                            if vac_status['players'][0]['VACBanned']
+                            else ''
+                        ),
+                        (
+                            'Community Banned'
+                            if vac_status['players'][0]['CommunityBanned']
+                            else ''
+                        ),
+                        (
+                            ''
+                            if vac_status['players'][0]['EconomyBan'] == 'none'
+                            else 'Economy Ban'
+                        ),
+                        (
+                            str(vac_status['players'][0]['NumberOfGameBans'])
+                            if vac_status['players'][0]['NumberOfGameBans']
+                            else ''
+                        )
+                    ]
+                )
                 continue
 
             self.friend_steamid_json = (
                 f'date/{STEAMID}/{s_id_friend}.json')
             self.friend = self.open_json(self.friend_steamid_json)
-            friend_info.append([
+            friend_info.append(
+                [
                     s_id_friend,
                     self.friend['response']['players'][0]['personaname'],
                     self.friend_since_friend,
-                    'VAC БАН' if vac_status['players'][0]['VACBanned'] else '',
-                    'Community Banned' if vac_status['players'][0]["CommunityBanned"] else '',
-                    "" if vac_status['players'][0]["EconomyBan"] == "none" else "Economy Ban",
-                    str(vac_status['players'][0]["NumberOfGameBans"]) if vac_status['players'][0]["NumberOfGameBans"] else ""])
+                    (
+                        'VAC БАН'
+                        if vac_status['players'][0]['VACBanned']
+                        else ''
+                    ),
+                    (
+                        'Community Banned'
+                        if vac_status['players'][0]['CommunityBanned'] else ''
+                    ),
+                    (
+                        ''
+                        if vac_status['players'][0]['EconomyBan'] == 'none'
+                        else 'Economy Ban'
+                    ),
+                    (
+                        str(vac_status['players'][0]['NumberOfGameBans'])
+                        if vac_status['players'][0]['NumberOfGameBans']
+                        else ''
+                    )
+                ])
             self.list_all_friends.emit(friend_info)
 
 
@@ -1764,7 +1833,7 @@ class CheckVacThread(QtCore.QThread, MyWin):
             date_ban = TODAY - timedelta(days=day)
             if (
                 str(all_users[val][1]) <= str(date_ban).split(' ')[0]
-            ) and vac_status[val]['players'][0]["VACBanned"]:
+            ) and vac_status[val]['players'][0]['VACBanned']:
                 tmp_users.append(
                     [
                         tmp_stmid,
@@ -1772,33 +1841,33 @@ class CheckVacThread(QtCore.QThread, MyWin):
                         str(all_users[val][1]),
                         (
                             'Забанен' if vac_status[val]
-                            ['players'][0]["CommunityBanned"] else ''
+                            ['players'][0]['CommunityBanned'] else ''
                             ),
                         (
                             'Забанен' if vac_status[val]
-                            ['players'][0]["VACBanned"] else ''
+                            ['players'][0]['VACBanned'] else ''
                             ),
                         (
                             str(
                                 vac_status[val]
                                 ['players'][0]
-                                ["NumberOfVACBans"]) if vac_status[val]
-                            ['players'][0]["NumberOfVACBans"] else ""
+                                ['NumberOfVACBans']) if vac_status[val]
+                            ['players'][0]['NumberOfVACBans'] else ''
                             ),
                         (
                             str(date_ban).split(' ')[0] if vac_status[val]
                             ['players'][0]
-                            ["DaysSinceLastBan"] else f'Новый! {TODAY}'
+                            ['DaysSinceLastBan'] else f'Новый! {TODAY}'
                             ),
                         (
                             str(
                                 vac_status[val]['players'][0]
-                                ["NumberOfGameBans"]) if vac_status[val]
-                            ['players'][0]["NumberOfGameBans"] else ""
+                                ['NumberOfGameBans']) if vac_status[val]
+                            ['players'][0]['NumberOfGameBans'] else ''
                             ),
                         (
-                            "" if vac_status[val]
-                            ['players'][0]["EconomyBan"] == "none" else 'BAN')
+                            '' if vac_status[val]
+                            ['players'][0]['EconomyBan'] == 'none' else 'BAN')
                         ]
                     )
 
@@ -1815,7 +1884,7 @@ class CheckVacThread(QtCore.QThread, MyWin):
             f'_ban_status_{TODAY}.json')
 
         url_steam_bans = f'{GPB}{steamid}'
-        directory = f"{steamid}"
+        directory = f'{steamid}'
         parent_dir = f'date\\{steamid}'
         path = os.path.join(parent_dir, directory)
         self.get_profile_status(steamid)
@@ -1844,8 +1913,8 @@ class CheckVacThread(QtCore.QThread, MyWin):
             f'_profile_info_{TODAY}.json')
 
         url_pfile_inf = f'{GPS}{steamid}'
-        directory = f"{steamid}"
-        parent_dir = "date\\"
+        directory = f'{steamid}'
+        parent_dir = 'date\\'
         path = os.path.join(parent_dir, directory)
         try:
             os.mkdir(path)
@@ -1863,7 +1932,7 @@ class CheckVacThread(QtCore.QThread, MyWin):
             # - the profile is not visible to
             # you (Private, Friends Only, etc),
             # communityvisibilitystate 3
-            #  - the profile is "Public", and the data is visible.
+            #  - the profile is 'Public', and the data is visible.
             if r_profile_inf['response']['players'] == []:
                 self.write_json_file(
                     'deleted',
@@ -1888,7 +1957,7 @@ class CheckVacThread(QtCore.QThread, MyWin):
         return 'Done'
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     app = QtWidgets.QApplication(sys.argv)
     myapp = MyWin()
     myapp.show()
