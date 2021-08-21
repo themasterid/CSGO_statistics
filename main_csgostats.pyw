@@ -203,14 +203,14 @@ class MyWin(QtWidgets.QMainWindow):
         self.ui.tableWidget_weapons.setRowCount(len(self.date_weapons))
         self.ui.tableWidget_weapons.setSortingEnabled(True)
         self.ui.tableWidget_weapons.setHorizontalHeaderLabels((
-                'Оружие',
-                'Точность',
-                'Летальность',
-                'Убийства',
-                'Попадания',
-                'Выстрелы',
-                '% от всех\nубийств'
-                ))
+            'Оружие',
+            'Точность',
+            'Летальность',
+            'Убийства',
+            'Попадания',
+            'Выстрелы',
+            '% от всех\nубийств'
+        ))
 
         rows_list = []
         for _ in range(len(self.date_weapons)):
@@ -392,14 +392,14 @@ class MyWin(QtWidgets.QMainWindow):
 
         competitive = (
             f"Карта {date_match[index_match]['competitive']}"
-            )
+        )
         date_t = f"Дата {date_match[index_match]['date']}"
         self.waittime = (
             'Время ожидания ' + date_match[index_match]['wait_time']
-            )
+        )
         self.matchduration = (
             'Время игры ' + date_match[index_match]['match_duration']
-            )
+        )
         self.score = 'Счет ' + date_match[index_match]['score']
         self.score_center = date_match[index_match]['score']
 
@@ -459,7 +459,7 @@ class MyWin(QtWidgets.QMainWindow):
             name_i.append(
                 self.get_profile_check(
                     steamid_i[val]
-                    )['response']['players'][0]['personaname'])
+                )['response']['players'][0]['personaname'])
             create_avatar(steamid_i[val])
             vac_status.append(
                 self.check_vac_thread.check_vac_banned(
@@ -496,19 +496,19 @@ class MyWin(QtWidgets.QMainWindow):
 
         if int(
             self.score_center.split(':')[0]
-            ) < int(
+        ) < int(
             self.score_center.split(':')[1]
         ):
             self.score_center = 'Проиграли ' + self.score_center + ' Выиграли'
         elif int(
             self.score_center.split(':')[0]
-            ) > int(
+        ) > int(
             self.score_center.split(':')[1]
         ):
             self.score_center = 'Выиграли ' + self.score_center + ' Проиграли'
         elif int(
             self.score_center.split(':')[0]
-            ) == int(
+        ) == int(
             self.score_center.split(':')[1]
         ):
             self.score_center = 'Ничья ' + self.score_center + ' Ничья'
@@ -636,8 +636,8 @@ class MyWin(QtWidgets.QMainWindow):
         return
 
     def get_statistics(self):
-        tmp_text_all = self.get_table_statistics(STEAMID)
-        self.ui.textBrowser_info.setText(tmp_text_all)
+        tta = self.get_table_statistics(STEAMID)
+        self.ui.textBrowser_info.setText(tta)
 
     def get_info_profile(self, steamid: str):
         url_pfile_inf = f'{GPS}{steamid}'
@@ -665,11 +665,11 @@ class MyWin(QtWidgets.QMainWindow):
             open(
                 f'date/{steamid}/{steamid}'
                 f'_profile_info_{TODAY}.json', 'r'
-                )
+            )
         except FileNotFoundError:
             r_profile_inf = requests.get(
                 url_pfile_inf
-                ).json()
+            ).json()
             #  1 - the profile is not visible to you
             #  (Private, Friends Only, etc),
             #  3 - the profile is "Public",
@@ -681,7 +681,7 @@ class MyWin(QtWidgets.QMainWindow):
                 steam_profile = (
                     f'date/{steamid}/{steamid}'
                     f'_profile_info_{TODAY}.json')
-                self.profile_data_json = self.write_json_file(
+                self.pf_d_js = self.write_json_file(
                     r_profile_inf,
                     steam_profile)
             elif r_profile_inf['response']['players'][0][CVS] == 3:
@@ -690,7 +690,7 @@ class MyWin(QtWidgets.QMainWindow):
                 steam_profile = (
                     f'date/{steamid}/{steamid}'
                     f'_profile_info_{TODAY}.json')
-                self.profile_data_json = self.write_json_file(
+                self.pf_d_js = self.write_json_file(
                     r_profile_inf,
                     steam_profile)
 
@@ -698,7 +698,7 @@ class MyWin(QtWidgets.QMainWindow):
         self.steamidprofile_json = (
             f'date/{steamid}/{steamid}'
             f'_profile_info_{TODAY}.json')
-        self.profile_data_json = self.open_json(self.steamidprofile_json)
+        self.pf_d_js = self.open_json(self.steamidprofile_json)
 
         #  0 - Offline, 1 - Online,
         #  2 - Busy,
@@ -707,12 +707,12 @@ class MyWin(QtWidgets.QMainWindow):
         #  5 - looking to trade,
         #  6 - looking to play
         personastate = (
-            self.profile_data_json['response']['players'][
+            self.pf_d_js['response']['players'][
                 0]['personastate'])
         #  1 - the profile is not visible to you (Private, Friends Only, etc),
         #  3 - the profile is "Public", and the data is visible.
         communityvisibilitystate = (
-            self.profile_data_json['response']['players'][0][CVS])
+            self.pf_d_js['response']['players'][0][CVS])
         if communityvisibilitystate == 1:
             for i in range(1, 4):
                 self.ui.tabWidget.setTabEnabled(i, False)
@@ -724,7 +724,7 @@ class MyWin(QtWidgets.QMainWindow):
                 QPixmap(f'date/{steamid}/{steamid}'
                         f'_avatarfull_{TODAY}.jpg'))
             self.ui.label_personaname.setText(
-                self.profile_data_json
+                self.pf_d_js
                 ['response']['players'][0]
                 ['personaname'] + ' (Приватный профиль)')
             return 'Done'
@@ -751,20 +751,20 @@ class MyWin(QtWidgets.QMainWindow):
                 QPixmap(f'date/{STEAMID}/{STEAMID}'
                         f'_avatarfull_{TODAY}.jpg'))
             self.ui.label_personaname.setText(
-                self.profile_data_json
+                self.pf_d_js
                 ['response']['players'][0]['personaname'] + self.online_status)
 
             try:
                 self.ui.label_realname.setText(
-                    self.profile_data_json
+                    self.pf_d_js
                     ['response']['players'][0]['realname'])
             except KeyError:
                 self.ui.label_realname.setText('██████████')
 
             self.ui.label_profileurl.setText(
-                self.profile_data_json['response']['players'][0]['profileurl'])
+                self.pf_d_js['response']['players'][0]['profileurl'])
             self.get_country_info(STEAMID)
-            return self.profile_data_json
+            return self.pf_d_js
 
     def get_country_info(self, steamid):
         text_location = ""
@@ -795,9 +795,9 @@ class MyWin(QtWidgets.QMainWindow):
         except FileNotFoundError:
             self.req_profile = requests.get(url_pfile_inf).json()
             self.write_json_file(self.req_profile, self.load_from_file)
-            self.profile_data_json = (
+            self.pf_d_js = (
                 self.open_json(self.load_from_file)
-                )
+            )
             text_location = ''
 
         try:
@@ -805,15 +805,15 @@ class MyWin(QtWidgets.QMainWindow):
         except FileNotFoundError:
             self.req_profile = requests.get(url_pfile_inf).json()
             self.write_json_file(self.req_profile, self.load_from_file)
-            self.profile_data_json = self.open_json(self.load_from_file)
+            self.pf_d_js = self.open_json(self.load_from_file)
 
         try:
             loccountrycode = (
-                self.profile_data_json
+                self.pf_d_js
                 ['response']['players'][0]['loccountrycode'])
             self.location_all_1 = (
                 'https://steamcommunity.com/actions/QueryLocations/'
-                )
+            )
             self.location_req_1 = requests.get(self.location_all_1).json()
             self.write_json_file(
                 self.location_req_1,
@@ -871,13 +871,13 @@ class MyWin(QtWidgets.QMainWindow):
             self.ui.label_loccountrycode.setText(text_location)
 
         # OpenFromFiles on Disc
-        self.profile_data_json = self.open_json(
+        self.pf_d_js = self.open_json(
             self.load_from_file)
         text_location = ''
 
         try:
             loccountrycode = (
-                self.profile_data_json
+                self.pf_d_js
                 ['response']['players'][0]['loccountrycode'])
             location_file_1 = self.open_json(
                 load_location_from_file_1)
@@ -891,7 +891,7 @@ class MyWin(QtWidgets.QMainWindow):
 
         try:
             self.locstatecode = (
-                self.profile_data_json
+                self.pf_d_js
                 ['response']['players'][0]['locstatecode'])
             self.location_file_2 = self.open_json(
                 self.load_location_from_file_2)
@@ -904,7 +904,7 @@ class MyWin(QtWidgets.QMainWindow):
             return text_location
         try:
             loccityid = (
-                self.profile_data_json['response']['players'][0]['loccityid']
+                self.pf_d_js['response']['players'][0]['loccityid']
             )
             self.location_file_3 = self.open_json(
                 self.load_location_from_file_3)
@@ -927,7 +927,7 @@ class MyWin(QtWidgets.QMainWindow):
             f'_profile_info_{TODAY}.json'
         )
         url_profile_stat = f'{GPS}{steamid}'
-        tmp_text_all = ''
+        tta = ''
 
         try:
             open(self.file_profile_info, 'r')
@@ -954,7 +954,7 @@ class MyWin(QtWidgets.QMainWindow):
             self.statusBar().showMessage(
                 'The profile is not visible to'
                 'you (Private, Friends Only, etc)')
-            self.profile_data_json = self.open_json(
+            self.pf_d_js = self.open_json(
                 self.file_profile_info)
             return NO_INFO_USERS
         elif self.file_profile_info_json['response']['players'][0][CVS] == 3:
@@ -962,9 +962,9 @@ class MyWin(QtWidgets.QMainWindow):
                 'The profile is "Public", and the data is visible')
             self.open_json(self.file_profile_info)
 
-        self.profile_data_json = self.open_json(
+        self.pf_d_js = self.open_json(
             self.file_profile_info
-            )
+        )
 
         # 0 - Offline,
         # 1 - Online,
@@ -990,15 +990,15 @@ class MyWin(QtWidgets.QMainWindow):
             self.image = QImage()
             self.image.loadFromData(
                 requests.get(
-                    self.profile_data_json['response']['players'][0]['avatarfull']
+                    self.pf_d_js['response']['players'][0]['avatarfull']
                 ).content)
             self.ui.label_avatar.setPixmap(QPixmap(self.image))
             self.ui.label_personaname.setText(
-                self.profile_data_json['response']['players'][0]['personaname'] +
+                self.pf_d_js['response']['players'][0]['personaname'] +
                 ' (Приватный профиль)'
             )
-            tmp_text_all = NO_INFO_USERS
-            return tmp_text_all
+            tta = NO_INFO_USERS
+            return tta
         elif communityvisibilitystate == 3:
             self.statis_profile = "Открытый"
             self.statusBar().showMessage(
@@ -1018,40 +1018,47 @@ class MyWin(QtWidgets.QMainWindow):
             else:
                 self.online_status = " (Offline)"
 
-        tmp_text_all += (
+        tta += (
             'Стим ID - '
-            f"{self.profile_data_json['response']['players'][0]['steamid']}\n"
-            )
-        tmp_text_all += f'Статус профиля - {self.statis_profile}\n'
-        tmp_text_all += f'Статус Steam - {self.online_status}\n'
+            f"{self.pf_d_js['response']['players'][0]['steamid']}\n"
+        )
+        tta += f'Статус профиля - {self.statis_profile}\n'
+        tta += f'Статус Steam - {self.online_status}\n'
         tmp_name = (
-            self.profile_data_json['response']
+            self.pf_d_js['response']
             ['players'][0]['personaname'])
-        tmp_text_all += f"Никнейм - {str(tmp_name)}\n"
+        tta += f"Никнейм - {str(tmp_name)}\n"
         tmp_pfile = (
-            self.profile_data_json['response']
+            self.pf_d_js['response']
             ['players'][0]['profileurl'])
-        tmp_text_all += f"Ссылка на профиль - {str(tmp_pfile)}\n"
+        tta += f"Ссылка на профиль - {str(tmp_pfile)}\n"
         # TODO complite f-string next 3 rows
         # ! 06.08.2021
         try:
-            tmp_text_all += 'Последний раз выходил - ' + str(datetime.fromtimestamp(self.profile_data_json['response']['players'][0]['lastlogoff'])) + "\n"
+            tta += 'Последний раз выходил - ' + str(
+                datetime.fromtimestamp(
+                    self.pf_d_js['response']['players'][0]['lastlogoff']
+                )
+            ) + "\n"
         except KeyError:
-            tmp_text_all += 'Последний раз выходил - ██████████ \n'
+            tta += 'Последний раз выходил - ██████████ \n'
         try:
-            tmp_text_all += f'Реальное имя - {str(self.profile_data_json["response"]["players"][0]["realname"])}\n'
+            tta += (
+                'Реальное имя -'
+                f'{str(self.pf_d_js["response"]["players"][0]["realname"])}'
+                '\n')
         except KeyError:
-            tmp_text_all += 'Реальное имя - ██████████ \n'
+            tta += 'Реальное имя - ██████████ \n'
         tmp_timec = (
             datetime.fromtimestamp(
-                self.profile_data_json['response']
+                self.pf_d_js['response']
                 ['players'][0]['timecreated'])
         )
-        tmp_text_all += f'Дата создания профиля - {str(tmp_timec)}\n'
-        tmp_text_all += (
+        tta += f'Дата создания профиля - {str(tmp_timec)}\n'
+        tta += (
             f"Страна - {self.ui.label_loccountrycode.text()}\n")
 
-        return tmp_text_all
+        return tta
 
     def open_new_profile(self) -> str:
         # TODO FIX not valid steam id in input
@@ -1080,7 +1087,7 @@ class MyWin(QtWidgets.QMainWindow):
         url_pfile_inf = f'{GPS}{steamid}'
         if requests.get(
             url_pfile_inf
-                ).json()['response']['players'] == []:
+        ).json()['response']['players'] == []:
             pixmap = QPixmap('img/error.jpg')
             self.ui.label_avatar.setPixmap(pixmap)
             self.ui.label_rank.setPixmap(pixmap)
@@ -1190,7 +1197,7 @@ class CheckWeaponsThread(QtCore.QThread, MyWin):
         if (
             requests.get(url_pfile_inf).json()['response']
             ['players'][0][CVS] == 1
-                ):
+        ):
             return [('', '', '', '', '', '', '')]
 
         total_ksh_ak47 = [
@@ -1382,7 +1389,7 @@ class CheckWeaponsThread(QtCore.QThread, MyWin):
                     ) + '%',
                 str(
                     round(total_ksh_ak47[0] / total_ksh_ak47[2] * 100, 2)
-                    ) + '%',
+                ) + '%',
                 str(total_ksh_ak47[0]),
                 str(total_ksh_ak47[2]),
                 str(total_ksh_ak47[1]),
@@ -1427,10 +1434,10 @@ class CheckWeaponsThread(QtCore.QThread, MyWin):
                 'Famas',
                 str(
                     round(total_ksh_famas[2] / total_ksh_famas[1] * 100, 2)
-                    ) + '%',
+                ) + '%',
                 str(
                     round(total_ksh_famas[0] / total_ksh_famas[2] * 100, 2)
-                    ) + '%',
+                ) + '%',
                 str(total_ksh_famas[0]),
                 str(total_ksh_famas[2]),
                 str(total_ksh_famas[1]),
@@ -1439,19 +1446,19 @@ class CheckWeaponsThread(QtCore.QThread, MyWin):
                 'Five-SeveN',
                 str(round(
                     total_ksh_fiveseven[2] / total_ksh_fiveseven[1] * 100, 2
-                    )
-                    ) + '%',
+                )
+                ) + '%',
                 str(round(
                     total_ksh_fiveseven[0] / total_ksh_fiveseven[2] * 100, 2
-                    )
-                    ) + '%',
+                )
+                ) + '%',
                 str(total_ksh_fiveseven[0]),
                 str(total_ksh_fiveseven[2]),
                 str(total_ksh_fiveseven[1]),
                 str(
                     round(
                         total_ksh_fiveseven[0] / total_summ * 100, 2
-                        )) + '%'),
+                    )) + '%'),
             ('G3SG1',
              str(round(total_ksh_g3sg1[2] /
                        total_ksh_g3sg1[1] * 100, 2)) + '%',
@@ -1627,10 +1634,10 @@ class CheckWeaponsThread(QtCore.QThread, MyWin):
                 'XM1014',
                 str(
                     round(total_ksh_xm1014[2] / total_ksh_xm1014[1] * 100, 2)
-                    ) + '%',
+                ) + '%',
                 str(
                     round(total_ksh_xm1014[0] / total_ksh_xm1014[2] * 100, 2)
-                    ) + '%',
+                ) + '%',
                 str(total_ksh_xm1014[0]),
                 str(total_ksh_xm1014[2]),
                 str(total_ksh_xm1014[1]),
@@ -1795,7 +1802,7 @@ class CheckVacThread(QtCore.QThread, MyWin):
         self.running = True
         date_match_users = self.open_json(
             ALL_S
-            )
+        )
 
         for count in range(len(date_match_users)):
             for i in range(10):
@@ -1821,13 +1828,13 @@ class CheckVacThread(QtCore.QThread, MyWin):
                 name = self.open_json(
                     f'date/{tmp_stmid}/{tmp_stmid}'
                     f'_profile_info_{TODAY}.json'
-                    )['response']['players'][0]['personaname']
+                )['response']['players'][0]['personaname']
             except IndexError:
                 tmp_stmid = '76561197997566454'
                 name = self.open_json(
                     f'date/{tmp_stmid}/{tmp_stmid}'
                     f'_profile_info_{TODAY}.json'
-                    )['response']['players'][0]['personaname']
+                )['response']['players'][0]['personaname']
 
             day = vac_status[val]['players'][0]['DaysSinceLastBan']
             date_ban = TODAY - timedelta(days=day)
@@ -1842,34 +1849,34 @@ class CheckVacThread(QtCore.QThread, MyWin):
                         (
                             'Забанен' if vac_status[val]
                             ['players'][0]['CommunityBanned'] else ''
-                            ),
+                        ),
                         (
                             'Забанен' if vac_status[val]
                             ['players'][0]['VACBanned'] else ''
-                            ),
+                        ),
                         (
                             str(
                                 vac_status[val]
                                 ['players'][0]
                                 ['NumberOfVACBans']) if vac_status[val]
                             ['players'][0]['NumberOfVACBans'] else ''
-                            ),
+                        ),
                         (
                             str(date_ban).split(' ')[0] if vac_status[val]
                             ['players'][0]
                             ['DaysSinceLastBan'] else f'Новый! {TODAY}'
-                            ),
+                        ),
                         (
                             str(
                                 vac_status[val]['players'][0]
                                 ['NumberOfGameBans']) if vac_status[val]
                             ['players'][0]['NumberOfGameBans'] else ''
-                            ),
+                        ),
                         (
                             '' if vac_status[val]
                             ['players'][0]['EconomyBan'] == 'none' else 'BAN')
-                        ]
-                    )
+                    ]
+                )
 
             val += 1
             # ! добавляем данные в таблицу банов в реальном реиме.
