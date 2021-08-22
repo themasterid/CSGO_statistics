@@ -151,26 +151,26 @@ class MyWin(QtWidgets.QMainWindow):
     # ! NOT DONE !
     # * open my profile by steamid
     def open_my_profile(self):
-        (self.ui.tabWidget.setTabEnabled(i, True) for i in range(1, 4))
+        (self.ui.tabWidget.setTabEnabled(_, True) for _ in range(1, 4))
         self.ui.pushButton_update_stat.setEnabled(True)
         self.ui.label_rank.setPixmap(QPixmap(SG18))
         # ! self.get_info_profile(STEAMID)
         self.ui.textBrowser_info.setText(
-            self.get_table_statistics(STEAMID))
+            self.get_table_statistics(STEAMID)
+        )
 
-    # ! NOT DONE !
+    # ! DONE !
     # * open steamid in browser
     def listwidgetclicked(self, item) -> Union[str, bool]:
-        if len(item.text()) != 17:
-            return 'ERR: not equal 17'
-
         try:
             int(item.text())
         except TypeError:
             return 'ERR: not int!'
-
-        url: str = f'https://steamcommunity.com/profiles/{item.text()}'
-        return webbrowser.open(url)
+        if len(item.text()) != 17:
+            return 'ERR: not equal 17'
+        return webbrowser.open(
+            f'https://steamcommunity.com/profiles/{item.text()}'
+        )
 
     # ! DONE !
     # * get items box for sort date
@@ -187,20 +187,22 @@ class MyWin(QtWidgets.QMainWindow):
     # * get items for combobox matches
     def get_items_combobox_matches(self) -> List[str]:
         match_items = self.open_json(ALL_S)
-        return [(
-            f'{vals + 1}) {match_items[vals]["date"]}'
-            f', map | {match_items[vals]["competitive"]}'
-            ' |') for vals in range(len(match_items))]
+        return [
+            (
+                f'{_ + 1}) {match_items[_]["date"]}'
+                f', map | {match_items[_]["competitive"]}'
+                ' |'
+            ) for _ in range(len(match_items))]
 
     def open_table_weapons(self):
         index_match_weapons = self.ui.comboBox_weapons.currentIndex()
         self.ui.tableWidget_weapons.clear()
-        self.date_weapons = self.open_json(
+        date_weapons = self.open_json(
             f'date/all_weapons/{STEAMID}/'
             f'{self.get_items_combobox("all_weapons")[index_match_weapons]}'
             '.json')
-        self.ui.tableWidget_weapons.setColumnCount(len(self.date_weapons[0]))
-        self.ui.tableWidget_weapons.setRowCount(len(self.date_weapons))
+        self.ui.tableWidget_weapons.setColumnCount(len(date_weapons[0]))
+        self.ui.tableWidget_weapons.setRowCount(len(date_weapons))
         self.ui.tableWidget_weapons.setSortingEnabled(True)
         self.ui.tableWidget_weapons.setHorizontalHeaderLabels((
             'Оружие',
@@ -213,13 +215,13 @@ class MyWin(QtWidgets.QMainWindow):
         ))
 
         rows_list = []
-        for _ in range(len(self.date_weapons)):
+        for _ in range(len(date_weapons)):
             rows_list.append(str(_ + 1))
 
         self.ui.tableWidget_weapons.setVerticalHeaderLabels(rows_list)
 
         row = 0
-        for tup in self.date_weapons:
+        for tup in date_weapons:
             col = 0
             for item in tup:
                 cellinfo = QTableWidgetItem(item)
@@ -1350,7 +1352,7 @@ class CheckWeaponsThread(QtCore.QThread, MyWin):
             self.find_key_by_value('total_shots_xm1014', steamid),
             self.find_key_by_value('total_hits_xm1014', steamid)]
 
-        total_summ = sum([
+        total_summ = sum((
             total_ksh_ak47[0],
             total_ksh_aug[0],
             total_ksh_awp[0],
@@ -1379,17 +1381,18 @@ class CheckWeaponsThread(QtCore.QThread, MyWin):
             total_ksh_ssg08[0],
             total_ksh_tec9[0],
             total_ksh_ump45[0],
-            total_ksh_xm1014[0]]
+            total_ksh_xm1014[0])
         )
 
-        self.date_weapons = [
+        date_weapons = [
             (
                 'AK-47',
-                str(round(total_ksh_ak47[2] / total_ksh_ak47[1] * 100, 2)
-                    ) + '%',
-                str(
-                    round(total_ksh_ak47[0] / total_ksh_ak47[2] * 100, 2)
-                ) + '%',
+                str(round(
+                    total_ksh_ak47[2] / total_ksh_ak47[1] * 100, 2
+                )) + '%',
+                str(round(
+                    total_ksh_ak47[0] / total_ksh_ak47[2] * 100, 2
+                )) + '%',
                 str(total_ksh_ak47[0]),
                 str(total_ksh_ak47[2]),
                 str(total_ksh_ak47[1]),
@@ -1433,11 +1436,13 @@ class CheckWeaponsThread(QtCore.QThread, MyWin):
             (
                 'Famas',
                 str(
-                    round(total_ksh_famas[2] / total_ksh_famas[1] * 100, 2)
-                ) + '%',
+                    round(
+                        total_ksh_famas[2] / total_ksh_famas[1] * 100, 2
+                    )) + '%',
                 str(
-                    round(total_ksh_famas[0] / total_ksh_famas[2] * 100, 2)
-                ) + '%',
+                    round(
+                        total_ksh_famas[0] / total_ksh_famas[2] * 100, 2
+                    )) + '%',
                 str(total_ksh_famas[0]),
                 str(total_ksh_famas[2]),
                 str(total_ksh_famas[1]),
@@ -1446,12 +1451,10 @@ class CheckWeaponsThread(QtCore.QThread, MyWin):
                 'Five-SeveN',
                 str(round(
                     total_ksh_fiveseven[2] / total_ksh_fiveseven[1] * 100, 2
-                )
-                ) + '%',
+                )) + '%',
                 str(round(
                     total_ksh_fiveseven[0] / total_ksh_fiveseven[2] * 100, 2
-                )
-                ) + '%',
+                )) + '%',
                 str(total_ksh_fiveseven[0]),
                 str(total_ksh_fiveseven[2]),
                 str(total_ksh_fiveseven[1]),
@@ -1459,15 +1462,20 @@ class CheckWeaponsThread(QtCore.QThread, MyWin):
                     round(
                         total_ksh_fiveseven[0] / total_summ * 100, 2
                     )) + '%'),
-            ('G3SG1',
-             str(round(total_ksh_g3sg1[2] /
-                       total_ksh_g3sg1[1] * 100, 2)) + '%',
-             str(round(total_ksh_g3sg1[0] /
-                       total_ksh_g3sg1[2] * 100, 2)) + '%',
-             str(total_ksh_g3sg1[0]),
-             str(total_ksh_g3sg1[2]),
-             str(total_ksh_g3sg1[1]),
-             str(round(total_ksh_g3sg1[0] / total_summ * 100, 2)) + '%'),
+            (
+                'G3SG1',
+                str(
+                    round(
+                        total_ksh_g3sg1[2] / total_ksh_g3sg1[1] * 100, 2
+                    )) + '%',
+                str(
+                    round(
+                        total_ksh_g3sg1[0] / total_ksh_g3sg1[2] * 100, 2
+                    )) + '%',
+                str(total_ksh_g3sg1[0]),
+                str(total_ksh_g3sg1[2]),
+                str(total_ksh_g3sg1[1]),
+                str(round(total_ksh_g3sg1[0] / total_summ * 100, 2)) + '%'),
             ('Galil AR',
              str(round(total_ksh_galilar[2] /
                        total_ksh_galilar[1] * 100, 2)) + '%',
@@ -1643,7 +1651,7 @@ class CheckWeaponsThread(QtCore.QThread, MyWin):
                 str(total_ksh_xm1014[1]),
                 str(round(total_ksh_xm1014[0] / total_summ * 100, 2)) + '%'
             )]
-        return self.date_weapons
+        return date_weapons
 
     def find_key_by_value(self, finded, steamid):
         url_statistic = f'{GUSFG}{steamid}'
@@ -1654,15 +1662,15 @@ class CheckWeaponsThread(QtCore.QThread, MyWin):
         if requests.get(url_statistic).status_code == 500:
             return 'Error 500'
 
-        try:
-            open(get_statistic_json, 'r', encoding=UTF8)
-        except FileNotFoundError:
-            self.req_statistic = requests.get(url_statistic).json()
-            self.write_json_file(self.req_statistic, get_statistic_json)
-
-        self.statistic_file_json = self.open_json(get_statistic_json)
-        finded_val = 0
-        for _ in self.statistic_file_json['playerstats']['stats']:
+        if not open(get_statistic_json, 'r', encoding=UTF8):
+            print('no file')
+            self.write_json_file(
+                requests.get(url_statistic).json(),
+                get_statistic_json
+            )
+        statistic_file_json = self.open_json(get_statistic_json)
+        finded_val: int = 0
+        for _ in statistic_file_json['playerstats']['stats']:
             if _['name'] == finded:
                 finded_val = _['value']
         return finded_val
