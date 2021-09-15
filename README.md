@@ -1,5 +1,5 @@
-# csgostats
-csgostats - просмотре статистики для игроков CS:GO. Сделан с применением:
+# CSGO_statistics
+CSGO_statistics - просмотре статистики для игроков CS:GO. Сделан с применением:
 - PyQt5
 - Python 3.9
 - json
