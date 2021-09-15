@@ -49,6 +49,7 @@ DATE_FMT = '%b-%d-%Y'
 TODAY = date.today()
 UTF8 = 'utf-8'
 ALL_S = 'all_stats/all_stats.json'
+DATE = 'date/'
 
 # ! MAKE DICT
 SG0 = 'img/ranks/skillgroup0.png'
@@ -72,8 +73,122 @@ SG17 = 'img/ranks/skillgroup17.png'
 SG18 = 'img/ranks/skillgroup18.png'
 
 
+class ProfileStatus:
+
+    NAMES = [
+        "steamid",
+        "communityvisibilitystate",
+        "profilestate",
+        "personaname",
+        "profileurl",
+        "avatar",
+        "avatarmedium",
+        "avatarfull",
+        "avatarhash",
+        "lastlogoff",
+        "personastate",
+        "realname",
+        "primaryclanid",
+        "timecreated",
+        "personastateflags",
+        "loccountrycode",
+        "locstatecode",
+        "loccityid"
+    ]
+
+    def __init__(self, steamid: str = ''):
+        self.steamid = steamid
+        self.records = []
+
+    def get_profile_check(self, steamid) -> str:
+        self.steamid = steamid
+
+        steam_profile = (
+            f'{DATE}/{self.steamid}/{self.steamid}'
+            f'_profile_info_{TODAY}.json'
+        )
+
+        url_pfile_inf = f'{GPS}{self.steamid}'
+        req = requests.get(url_pfile_inf).json()
+        if req['response']['players'] == []:
+            deleted = {
+                "response": {
+                    "players": [
+                        {
+                            "steamid": self.steamid,
+                            "communityvisibilitystate": None,
+                            "profilestate": None,
+                            "personaname": "[deleted]",
+                            "profileurl": None,
+                            "avatar": None,
+                            "avatarmedium": None,
+                            "avatarfull": None,
+                            "avatarhash": None,
+                            "lastlogoff": None,
+                            "personastate": None,
+                            "realname": None,
+                            "primaryclanid": None,
+                            "timecreated": None,
+                            "personastateflags": None,
+                            "loccountrycode": None,
+                            "locstatecode": None,
+                            "loccityid": None
+                        }
+                    ]
+                }
+            }
+            self.get_file_folder(self.steamid, steam_profile, deleted)
+            return self.records.append(self.open_json(steam_profile))
+
+        self.get_file_folder(self.steamid, steam_profile, req)
+        request_ = self.get_names(
+            self.open_json(steam_profile)['response']['players']
+        )
+        self.get_file_folder(self.steamid, steam_profile, request_)
+        if req['response']['players'][0][CVS] == 1:
+            self.records.append(
+                self.open_json(steam_profile))
+        elif req['response']['players'][0][CVS] == 3:
+            self.records.append(
+                self.open_json(steam_profile))
+        elif req['response']['players'][0][CVS] is None:
+            self.records.append(request_)
+        return self.records
+
+    def get_file_folder(self, *args):
+        steamid, steam_profile, req = args
+        path_ = os.path.join(DATE, steamid)
+        if os.path.exists(path_):
+            if not os.path.exists(steam_profile):
+                self.write_json(req, steam_profile)
+        else:
+            os.mkdir(path_)
+            self.write_json(req, steam_profile)
+        self.write_json(req, steam_profile)
+
+    def write_json(self, date_, fname):
+        with open(fname, 'w', encoding=UTF8) as file_:
+            return json.dump(
+                date_,
+                file_,
+                ensure_ascii=False,
+                indent=4)
+
+    def open_json(self, fname):
+        with open(fname, 'r', encoding=UTF8) as file_:
+            return json.load(file_)
+
+    def get_names(self, dates):
+        lst = []
+        for i in dates:
+            dict_ = {}
+            for j in self.NAMES:
+                dict_[j] = i.get(j, None)
+            lst.append(dict_)
+        return lst
+
+
 class MyWin(QtWidgets.QMainWindow):
-    '''Main Window for application csstats.'''
 
     def __init__(self, parent=None):
         QtWidgets.QWidget.__init__(self, parent)
@@ -89,9 +204,10 @@ class MyWin(QtWidgets.QMainWindow):
         self.ui.pushButton.clicked.connect(self.open_new_profile)
         self.ui.pushButton_my_profile.clicked.connect(self.open_my_profile)
 
+        self.resault = ProfileStatus()
+
         # STATS
-        resault = self.get_info_profile(STEAMID)
-        # ! print(resault)
+        '''
         if (
             resault['response']['players'][0][CVS] == 1
         ):
@@ -102,7 +218,7 @@ class MyWin(QtWidgets.QMainWindow):
         ):
             for i in range(1, 4):
                 self.ui.tabWidget.setTabEnabled(i, True)
-
+        '''
         self.ui.pushButton_update_stat.clicked.connect(self.get_statistics)
         self.ui.textBrowser_info.setText(
             self.get_table_statistics(STEAMID))
@@ -214,11 +330,9 @@ class MyWin(QtWidgets.QMainWindow):
             '% от всех\nубийств'
         ))
 
-        rows_list = []
-        for _ in range(len(date_weapons)):
-            rows_list.append(str(_ + 1))
-
-        self.ui.tableWidget_weapons.setVerticalHeaderLabels(rows_list)
+        self.ui.tableWidget_weapons.setVerticalHeaderLabels(
+            [str(_) for _ in range(1, len(date_weapons))]
+        )
 
         row = 0
         for tup in date_weapons:
@@ -254,11 +368,9 @@ class MyWin(QtWidgets.QMainWindow):
             'Economy Ban',
             'Game Bans'))
 
-        rows_list = []
-        for _ in range(len(friend_info)):
-            rows_list.append(str(_ + 1))
-
-        self.ui.tableWidget_friends.setVerticalHeaderLabels(rows_list)
+        self.ui.tableWidget_friends.setVerticalHeaderLabels(
+            [str(_) for _ in range(1, len(friend_info))]
+        )
 
         row = 0
         for tup in friend_info:
@@ -296,6 +408,8 @@ class MyWin(QtWidgets.QMainWindow):
             f'date/all_bans/{STEAMID}/'
             f'{self.get_items_combobox("all_bans")[index_match]}'
             '.json')
+        if all_users == []:
+            return 'Нет данных в таблице банов'
         self.ui.tableWidget_bans.setColumnCount(len(all_users[0]))
         self.ui.tableWidget_bans.setRowCount(len(all_users))
         self.ui.tableWidget_bans.setSortingEnabled(True)
@@ -311,10 +425,9 @@ class MyWin(QtWidgets.QMainWindow):
             'Бан\nторговой')
         )
 
-        rows_list = []
-        for _ in range(len(all_users)):
-            rows_list.append(str(_ + 1))
-        self.ui.tableWidget_weapons.setVerticalHeaderLabels(rows_list)
+        self.ui.tableWidget_weapons.setVerticalHeaderLabels(
+            [str(_) for _ in range(1, len(all_users))]
+        )
 
         row = 0
         for tup in all_users:
@@ -329,27 +442,27 @@ class MyWin(QtWidgets.QMainWindow):
 
         self.ui.tableWidget_bans.setGridStyle(1)
         self.ui.tableWidget_bans.resizeColumnsToContents()
-        return
+        return 'Таблица заполнена'
 
     def get_profile_check(self, steamid: str) -> str:
         steam_profile = (
             f'date/{steamid}/{steamid}'
-            f'_profile_info_{TODAY}.json')
+            f'_profile_info_{TODAY}.json'
+        )
+
         url_pfile_inf = f'{GPS}{steamid}'
-        directory = f"{steamid}"
-        parent_dir = "date\\"
-        path = os.path.join(
-            parent_dir,
-            directory)
+
+        path = os.path.join('date\\', steamid)
+
         try:
             os.mkdir(path)
         except FileExistsError:
-            pass
+            print('Файл есть!')
 
         try:
             open(
                 f'date/{steamid}/{steamid}'
-                '_profile_info_{TODAY}.json',
+                f'_profile_info_{TODAY}.json',
                 'r')
         except FileNotFoundError:
             r_profile_inf = requests.get(url_pfile_inf).json()
@@ -362,10 +475,7 @@ class MyWin(QtWidgets.QMainWindow):
                     f'date/deleted_/{steamid}'
                     f'_deleted_profile_info_{TODAY}.json')
                 return 'Deleted'
-            # 1 - the profile is not visible to you
-            # (Private, Friends Only, etc),
-            # 3 - the profile is "Public",
-            # and the data is visible.
+
             # ! FIX OUTPUT DATA
             if r_profile_inf['response']['players'][0][CVS] == 1:
                 self.write_json_file(
@@ -449,6 +559,9 @@ class MyWin(QtWidgets.QMainWindow):
             pixmap = QPixmap('img/imgs_maps/nomap.jpg')
             self.ui.label_image_map.setPixmap(pixmap)
 
+        self.resault = ProfileStatus()
+        resault = self.resault.get_profile_check(STEAMID)
+
         steamid_i = []
         name_i = []
         player_name_i = []
@@ -458,11 +571,8 @@ class MyWin(QtWidgets.QMainWindow):
             self.ui.progressBar_bans.setProperty("value", val)
             steamid_i.append(
                 date_match[index_match]['team'][val]['steamid64'])
-            name_i.append(
-                self.get_profile_check(
-                    steamid_i[val]
-                )['response']['players'][0]['personaname'])
-            create_avatar(steamid_i[val])
+            name_i.append(resault[0][0]['personaname'])
+            # create_avatar(steamid_i[val])
             vac_status.append(
                 self.check_vac_thread.check_vac_banned(
                     steamid_i[val])['players'][0]['VACBanned'])
@@ -642,83 +752,16 @@ class MyWin(QtWidgets.QMainWindow):
         self.ui.textBrowser_info.setText(tta)
 
     def get_info_profile(self, steamid: str):
-        url_pfile_inf = f'{GPS}{steamid}'
-        # ! STOP
-        if self.check_profile(steamid) == 'ERR: not found!':
-            return 'Not steamid'
 
-        directory = f'{steamid}'
-        parent_dir = 'date\\'
-        path = os.path.join(parent_dir, directory)
-        if os.path.exists(path):
-            if os.path.isdir(path):
-                # ! 'Объект найден'
-                pass
-        else:
-            # ! 'Объект не найден'
-            os.mkdir(path)
+        self.resault = ProfileStatus()
+        resault = self.resault.get_profile_check(steamid)
 
-        # try:
-        #    os.mkdir(path)
-        # except FileExistsError:
-        #    return '<папка создана>'
+        # create_avatar(steamid)
 
-        try:
-            open(
-                f'date/{steamid}/{steamid}'
-                f'_profile_info_{TODAY}.json', 'r'
-            )
-        except FileNotFoundError:
-            r_profile_inf = requests.get(
-                url_pfile_inf
-            ).json()
-            #  1 - the profile is not visible to you
-            #  (Private, Friends Only, etc),
-            #  3 - the profile is "Public",
-            #  and the data is visible.
-            if r_profile_inf['response']['players'][0][CVS] == 1:
-                self.statusBar().showMessage(
-                    'The profile is not visible to you'
-                    ' (Private, Friends Only, etc)')
-                steam_profile = (
-                    f'date/{steamid}/{steamid}'
-                    f'_profile_info_{TODAY}.json')
-                self.pf_d_js = self.write_json_file(
-                    r_profile_inf,
-                    steam_profile)
-            elif r_profile_inf['response']['players'][0][CVS] == 3:
-                self.statusBar().showMessage(
-                    'The profile is "Public", and the data is visible')
-                steam_profile = (
-                    f'date/{steamid}/{steamid}'
-                    f'_profile_info_{TODAY}.json')
-                self.pf_d_js = self.write_json_file(
-                    r_profile_inf,
-                    steam_profile)
-
-        create_avatar(STEAMID)
-        self.steamidprofile_json = (
-            f'date/{steamid}/{steamid}'
-            f'_profile_info_{TODAY}.json')
-        self.pf_d_js = self.open_json(self.steamidprofile_json)
-
-        #  0 - Offline, 1 - Online,
-        #  2 - Busy,
-        #  3 - Away,
-        #  4 - Snooze,
-        #  5 - looking to trade,
-        #  6 - looking to play
-        personastate = (
-            self.pf_d_js['response']['players'][
-                0]['personastate'])
-        #  1 - the profile is not visible to you (Private, Friends Only, etc),
-        #  3 - the profile is "Public", and the data is visible.
-        communityvisibilitystate = (
-            self.pf_d_js['response']['players'][0][CVS])
+        personastate = resault[0][0]['personastate']
+        communityvisibilitystate = resault[0][0][CVS]
         if communityvisibilitystate == 1:
-            for i in range(1, 4):
-                self.ui.tabWidget.setTabEnabled(i, False)
-
+            [self.ui.tabWidget.setTabEnabled(i, False) for i in range(1, 4)]
             self.statusBar().showMessage(
                 '1 - the profile is not visible to you'
                 ' (Private, Friends Only, etc)')
@@ -726,10 +769,7 @@ class MyWin(QtWidgets.QMainWindow):
                 QPixmap(f'date/{steamid}/{steamid}'
                         f'_avatarfull_{TODAY}.jpg'))
             self.ui.label_personaname.setText(
-                self.pf_d_js
-                ['response']['players'][0]
-                ['personaname'] + ' (Приватный профиль)')
-            return 'Done'
+                f"{resault[0][0]['personaname']} (Приватный профиль)")
 
         elif communityvisibilitystate == 3:
             self.statusBar().showMessage(
@@ -753,22 +793,23 @@ class MyWin(QtWidgets.QMainWindow):
                 QPixmap(f'date/{STEAMID}/{STEAMID}'
                         f'_avatarfull_{TODAY}.jpg'))
             self.ui.label_personaname.setText(
-                self.pf_d_js
-                ['response']['players'][0]['personaname'] + self.online_status)
+                resault[0][0]['personaname'] + self.online_status)
 
             try:
                 self.ui.label_realname.setText(
-                    self.pf_d_js
-                    ['response']['players'][0]['realname'])
+                    resault[0][0]['realname'])
             except KeyError:
                 self.ui.label_realname.setText('██████████')
 
             self.ui.label_profileurl.setText(
-                self.pf_d_js['response']['players'][0]['profileurl'])
+                resault[0][0]['profileurl'])
             self.get_country_info(STEAMID)
-            return self.pf_d_js
+            return resault
 
     def get_country_info(self, steamid):
+        self.resault = ProfileStatus()
+        resault = self.resault.get_profile_check(steamid)
+
         text_location = ""
         self.load_from_file = (
             f'date/{steamid}/{steamid}'
@@ -784,9 +825,9 @@ class MyWin(QtWidgets.QMainWindow):
             f'_profile_location_3_{TODAY}.json')
 
         url_pfile_inf = f'{GPS}{steamid}'
-        directory = f"{steamid}"
-        parent_dir = "date"
-        path = os.path.join(parent_dir, directory)
+
+        path = os.path.join('date\\', steamid)
+
         try:
             os.mkdir(path)
         except FileExistsError:
@@ -797,9 +838,6 @@ class MyWin(QtWidgets.QMainWindow):
         except FileNotFoundError:
             self.req_profile = requests.get(url_pfile_inf).json()
             self.write_json_file(self.req_profile, self.load_from_file)
-            self.pf_d_js = (
-                self.open_json(self.load_from_file)
-            )
             text_location = ''
 
         try:
@@ -807,12 +845,10 @@ class MyWin(QtWidgets.QMainWindow):
         except FileNotFoundError:
             self.req_profile = requests.get(url_pfile_inf).json()
             self.write_json_file(self.req_profile, self.load_from_file)
-            self.pf_d_js = self.open_json(self.load_from_file)
 
         try:
             loccountrycode = (
-                self.pf_d_js
-                ['response']['players'][0]['loccountrycode'])
+                resault[0][0]['loccountrycode'])
             self.location_all_1 = (
                 'https://steamcommunity.com/actions/QueryLocations/'
             )
@@ -873,14 +909,11 @@ class MyWin(QtWidgets.QMainWindow):
             self.ui.label_loccountrycode.setText(text_location)
 
         # OpenFromFiles on Disc
-        self.pf_d_js = self.open_json(
-            self.load_from_file)
         text_location = ''
 
         try:
             loccountrycode = (
-                self.pf_d_js
-                ['response']['players'][0]['loccountrycode'])
+                resault[0][0]['loccountrycode'])
             location_file_1 = self.open_json(
                 load_location_from_file_1)
             for _ in location_file_1:
@@ -893,8 +926,7 @@ class MyWin(QtWidgets.QMainWindow):
 
         try:
             self.locstatecode = (
-                self.pf_d_js
-                ['response']['players'][0]['locstatecode'])
+                resault[0][0]['locstatecode'])
             self.location_file_2 = self.open_json(
                 self.load_location_from_file_2)
             for _ in self.location_file_2:
@@ -906,7 +938,7 @@ class MyWin(QtWidgets.QMainWindow):
             return text_location
         try:
             loccityid = (
-                self.pf_d_js['response']['players'][0]['loccityid']
+                resault[0][0]['loccityid']
             )
             self.location_file_3 = self.open_json(
                 self.load_location_from_file_3)
@@ -922,8 +954,9 @@ class MyWin(QtWidgets.QMainWindow):
 
     def get_table_statistics(self, steamid):
         # ! FIX
-        self.get_info_profile(steamid)
-        create_avatar(steamid)
+        self.resault = ProfileStatus()
+        resault = self.resault.get_profile_check(steamid)
+        # create_avatar(steamid)
         self.file_profile_info = (
             f'date/{steamid}/{steamid}'
             f'_profile_info_{TODAY}.json'
@@ -940,33 +973,19 @@ class MyWin(QtWidgets.QMainWindow):
                 f_pfile_info_req,
                 self.file_profile_info)
 
-        if self.open_json(
-            self.file_profile_info
-        )['response']['players'] == []:
-            self.statusBar().showMessage('ERR: 404 Not found!')
-            return TEXT_NOT_FOUND
-
-        #  * communityvisibilitystate
-        #  * 1 - the profile is not visible to you (Private, Friends Only, etc)
-        #  * 3 - the profile is "Public", and the data is visible.
         self.file_profile_info_json = self.open_json(
             self.file_profile_info
         )
-        if self.file_profile_info_json['response']['players'][0][CVS] == 1:
+
+        if resault[0][0][CVS] == 1:
             self.statusBar().showMessage(
                 'The profile is not visible to'
                 'you (Private, Friends Only, etc)')
-            self.pf_d_js = self.open_json(
-                self.file_profile_info)
             return NO_INFO_USERS
-        elif self.file_profile_info_json['response']['players'][0][CVS] == 3:
+        elif resault[0][0][CVS] == 3:
             self.statusBar().showMessage(
                 'The profile is "Public", and the data is visible')
             self.open_json(self.file_profile_info)
-
-        self.pf_d_js = self.open_json(
-            self.file_profile_info
-        )
 
         # 0 - Offline,
         # 1 - Online,
@@ -975,12 +994,10 @@ class MyWin(QtWidgets.QMainWindow):
         # 4 - Snooze,
         # 5 - looking to trade,
         # 6 - looking to play
-        personastate = self.file_profile_info_json[
-            'response']['players'][0]['personastate']
+        personastate = resault[0][0]['personastate']
         #  1 - the profile is not visible to you (Private, Friends Only, etc),
         #  3 - the profile is "Public", and the data is visible.
-        communityvisibilitystate = (
-            self.file_profile_info_json['response']['players'][0][CVS])
+        communityvisibilitystate = resault[0][0][CVS]
 
         if communityvisibilitystate == 1:
             self.statis_profile = "Закрытый"
@@ -992,11 +1009,11 @@ class MyWin(QtWidgets.QMainWindow):
             self.image = QImage()
             self.image.loadFromData(
                 requests.get(
-                    self.pf_d_js['response']['players'][0]['avatarfull']
+                    resault[0][0]['avatarfull']
                 ).content)
             self.ui.label_avatar.setPixmap(QPixmap(self.image))
             self.ui.label_personaname.setText(
-                self.pf_d_js['response']['players'][0]['personaname'] +
+                resault[0][0]['personaname'] +
                 ' (Приватный профиль)'
             )
             tta = NO_INFO_USERS
@@ -1022,24 +1039,20 @@ class MyWin(QtWidgets.QMainWindow):
 
         tta += (
             'Стим ID - '
-            f"{self.pf_d_js['response']['players'][0]['steamid']}\n"
+            f"{resault[0][0]['steamid']}\n"
         )
         tta += f'Статус профиля - {self.statis_profile}\n'
         tta += f'Статус Steam - {self.online_status}\n'
-        tmp_name = (
-            self.pf_d_js['response']
-            ['players'][0]['personaname'])
+        tmp_name = resault[0][0]['personaname']
         tta += f"Никнейм - {str(tmp_name)}\n"
-        tmp_pfile = (
-            self.pf_d_js['response']
-            ['players'][0]['profileurl'])
+        tmp_pfile = resault[0][0]['profileurl']
         tta += f"Ссылка на профиль - {str(tmp_pfile)}\n"
         # TODO complite f-string next 3 rows
         # ! 06.08.2021
         try:
             tta += 'Последний раз выходил - ' + str(
                 datetime.fromtimestamp(
-                    self.pf_d_js['response']['players'][0]['lastlogoff']
+                    resault[0][0]['lastlogoff']
                 )
             ) + "\n"
         except KeyError:
@@ -1047,14 +1060,13 @@ class MyWin(QtWidgets.QMainWindow):
         try:
             tta += (
                 'Реальное имя -'
-                f'{str(self.pf_d_js["response"]["players"][0]["realname"])}'
+                f'{str(resault[0][0]["realname"])}'
                 '\n')
         except KeyError:
             tta += 'Реальное имя - ██████████ \n'
         tmp_timec = (
             datetime.fromtimestamp(
-                self.pf_d_js['response']
-                ['players'][0]['timecreated'])
+                resault[0][0]['timecreated'])
         )
         tta += f'Дата создания профиля - {str(tmp_timec)}\n'
         tta += (
@@ -1112,6 +1124,7 @@ class MyWin(QtWidgets.QMainWindow):
     def click_avatar(self):
         webbrowser.open(self.ui.label_profileurl.text())
 
+    # ! УДАЛИТЬ
     def write_json_file(self, date_to_write, fname):
         self.date_to_write = date_to_write
         self.fname = fname
@@ -1121,6 +1134,7 @@ class MyWin(QtWidgets.QMainWindow):
                 self.write_json_file_,
                 ensure_ascii=False, indent=4)
 
+    # ! УДАЛИТЬ
     def open_json(self, fname):
         self.fname = fname
         try:
@@ -1789,9 +1803,10 @@ class CheckFriendsThread(QtCore.QThread, MyWin):
                     )
                 ])
             self.list_all_friends.emit(friend_info)
+        return 'Done'
 
 
-class CheckVacThread(QtCore.QThread, MyWin):
+class CheckVacThread(QtCore.QThread, MyWin, ProfileStatus):
     list_all_users = QtCore.pyqtSignal(list)
     message_toolbar_bans = QtCore.pyqtSignal(str)
     int_for_progressbar_vac = QtCore.pyqtSignal(int, int)
@@ -1832,17 +1847,11 @@ class CheckVacThread(QtCore.QThread, MyWin):
             self.int_for_progressbar_vac.emit(
                 val,
                 len(all_users))
-            try:
-                name = self.open_json(
-                    f'date/{tmp_stmid}/{tmp_stmid}'
-                    f'_profile_info_{TODAY}.json'
-                )['response']['players'][0]['personaname']
-            except IndexError:
-                tmp_stmid = '76561197997566454'
-                name = self.open_json(
-                    f'date/{tmp_stmid}/{tmp_stmid}'
-                    f'_profile_info_{TODAY}.json'
-                )['response']['players'][0]['personaname']
+            print(tmp_stmid)
+            resault = self.get_profile_check(tmp_stmid)
+            print(resault)
+            name = resault['response']['players'][0]['personaname']
+            print(name)
 
             day = vac_status[val]['players'][0]['DaysSinceLastBan']
             date_ban = TODAY - timedelta(days=day)
@@ -1899,9 +1908,9 @@ class CheckVacThread(QtCore.QThread, MyWin):
             f'_ban_status_{TODAY}.json')
 
         url_steam_bans = f'{GPB}{steamid}'
-        directory = f'{steamid}'
-        parent_dir = f'date\\{steamid}'
-        path = os.path.join(parent_dir, directory)
+
+        path = os.path.join(f'date\\{steamid}', steamid)
+
         self.get_profile_status(steamid)
 
         try:
@@ -1928,26 +1937,29 @@ class CheckVacThread(QtCore.QThread, MyWin):
             f'_profile_info_{TODAY}.json')
 
         url_pfile_inf = f'{GPS}{steamid}'
-        directory = f'{steamid}'
-        parent_dir = 'date\\'
-        path = os.path.join(parent_dir, directory)
-        try:
+
+        path = os.path.join('date\\', steamid)
+
+        # ! Повтор
+        if os.path.exists(path):
+            if os.path.isdir(path):
+                # ! 'Объект найден'
+                pass
+        else:
+            # ! 'Объект не найден'
             os.mkdir(path)
-        except FileExistsError:
-            pass
 
         try:
             open(steam_profile, 'r')
         except FileNotFoundError:
-            r_profile_inf = requests.get(url_pfile_inf).json()
+            r_profile_inf = requests.get(
+                url_pfile_inf
+            ).json()
+
             self.write_json_file(
                 r_profile_inf,
                 steam_profile)
-            # communityvisibilitystate 1
-            # - the profile is not visible to
-            # you (Private, Friends Only, etc),
-            # communityvisibilitystate 3
-            #  - the profile is 'Public', and the data is visible.
+
             if r_profile_inf['response']['players'] == []:
                 self.write_json_file(
                     'deleted',
