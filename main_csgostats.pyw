@@ -1,5 +1,6 @@
 import os
 import sys
+import time
 import webbrowser
 from datetime import date, datetime, timedelta
 from os import listdir
@@ -137,10 +138,6 @@ class ProfileStatus:
         try:
             open(steam_profile, 'r')
         except FileNotFoundError:
-            print(
-                'get_profile_check: Загружаем с API для:'
-                f' <{steamid}> и создаем файл.'
-            )
             req = requests.get(
                 f'{GPS}{steamid}').json()
             self.write_json(req, steam_profile)
@@ -202,7 +199,7 @@ class ProfileStatus:
             lst.append(dict_)
         return lst
 
-    def check_vac_banned(self, steamid) -> Any:
+    def check_vac_banned(self, steamid):
         file_bans = (
             f'date/{steamid}/{steamid}'
             f'_ban_status_{TODAY}.json')
@@ -211,8 +208,6 @@ class ProfileStatus:
         try:
             os.mkdir(path)
         except FileExistsError:
-            # self.message_toolbar_bans.emit(
-            #    f'Папка создана для: <{steamid}>')
             pass
 
         try:
@@ -221,22 +216,9 @@ class ProfileStatus:
                 f'_ban_status_{TODAY}.json', 'r'
             )
         except FileNotFoundError:
-            # self.message_toolbar_bans.emit(
-            #     f'Загружаем с API для: <{steamid}> и создаем файл.')
-            print(
-                'check_vac_banned: Загружаем с API для: '
-                f'<{steamid}> и создаем файл.'
-            )
             request = requests.get(
                 f'{GPB}{steamid}').json()
             self.write_json(request, file_bans)
-
-        # self.message_toolbar_bans.emit(
-        #    f'Пропуск проверки, загружаем с диска: <{steamid}>')
-        print(
-            'check_vac_banned: Пропуск проверки, '
-            f'загружаем с диска: <{steamid}>'
-        )
         return self.open_json(file_bans)
 
     def create_avatar(self, steamid):
@@ -387,6 +369,10 @@ class MyWin(QtWidgets.QMainWindow):
             self.on_change_check_vac, QtCore.Qt.QueuedConnection)
         self.check_vac_thread.int_for_progressbar_vac.connect(
             self.on_change_vac_rows, QtCore.Qt.QueuedConnection)
+
+        self.check_weapons_thread.int_for_progressbar_w.connect(
+            self.on_change_wp_rows, QtCore.Qt.QueuedConnection)
+
         self.ui.tableWidget_bans.itemDoubleClicked.connect(
             self.listwidgetclicked)
 
@@ -623,7 +609,7 @@ class MyWin(QtWidgets.QMainWindow):
             return self.resault.open_json(steam_profile)
         return 'Done'
 
-    # Add thread GetInfoBanThread
+    # ! Add thread GetInfoBanThread
     def get_info_match(self):
         date_match = self.resault.open_json(ALL_S)
         index_match = self.ui.comboBox_matches.currentIndex()
@@ -655,7 +641,7 @@ class MyWin(QtWidgets.QMainWindow):
             name_i.append(resault['response']['players'][0]['personaname'])
             self.resault.create_avatar(steamid_i[val])
             vac_status.append(
-                self.check_vac_thread.check_vac_banned(
+                self.resault.check_vac_banned(
                     steamid_i[val])['players'][0]['VACBanned'])
             player_name_i.append(
                 date_match[index_match]['team'][val]['player_name'])
@@ -1105,9 +1091,9 @@ class MyWin(QtWidgets.QMainWindow):
         tta += f'Статус профиля - {statis_profile}\n'
         tta += f'Статус Steam - {online_status}\n'
         tmp_name = resault['response']['players'][0]['personaname']
-        tta += f'Никнейм - {str(tmp_name)}\n'
+        tta += f'Никнейм - {tmp_name}\n'
         tmp_pfile = resault['response']['players'][0]['profileurl']
-        tta += f'Ссылка на профиль - {str(tmp_pfile)}\n'
+        tta += f'Ссылка на профиль - {tmp_pfile}\n'
         text_last = 'Последний раз выходил - ██████████ \n'
         text_exit = 'Последний раз выходил - '
 
@@ -1117,15 +1103,13 @@ class MyWin(QtWidgets.QMainWindow):
                     resault['response']['players'][0]['lastlogoff']
                 )
             ) + '\n'
-        except KeyError:
-            tta += text_last
-        except TypeError:
+        except (KeyError, TypeError):
             tta += text_last
 
         try:
             tta += (
                 'Реальное имя -'
-                f'{str(resault["response"]["players"][0]["realname"])}'
+                f'{resault["response"]["players"][0]["realname"]}'
                 '\n')
         except KeyError:
             tta += 'Реальное имя - ██████████ \n'
@@ -1133,7 +1117,7 @@ class MyWin(QtWidgets.QMainWindow):
             datetime.fromtimestamp(
                 resault['response']['players'][0]['timecreated'])
         )
-        tta += f'Дата создания профиля - {str(tmp_timec)}\n'
+        tta += f'Дата создания профиля - {tmp_timec}\n'
         tta += (
             f'Страна - {self.ui.label_loccountrycode.text()}\n')
 
@@ -1173,6 +1157,13 @@ class MyWin(QtWidgets.QMainWindow):
     def on_change_check_weapons(self, weapons_info):
         self.statusBar().showMessage(f'{weapons_info}')
 
+    def on_change_wp_rows(self, info_progress_bar_w, wstats):
+        self.info_progress_bar_w = info_progress_bar_w
+        self.ui.progressBar_bans.setMaximum(wstats)
+        self.ui.progressBar_bans.setProperty(
+            'value',
+            self.info_progress_bar_w)
+
     # FRIENDS
     def on_start_friends(self):
         if not self.check_friends_thread.isRunning():
@@ -1209,8 +1200,10 @@ class MyWin(QtWidgets.QMainWindow):
         event.accept()
 
 
-class CheckWeaponsThread(QtCore.QThread, MyWin, ProfileStatus):
-    list_all_weapons = QtCore.pyqtSignal(list)
+class CheckWeaponsThread(QtCore.QThread, MyWin):
+    """Get weapons info."""
+    list_all_weapons = QtCore.pyqtSignal(tuple)
+    int_for_progressbar_w = QtCore.pyqtSignal(int, int)
 
     def __init__(self, parent=None):
         QtCore.QThread.__init__(self, parent)
@@ -1220,170 +1213,139 @@ class CheckWeaponsThread(QtCore.QThread, MyWin, ProfileStatus):
     def run(self):
         w_info = self.get_info_weapons(STEAMID)
         path = f'date/all_weapons/{STEAMID}/{TODAY}.json'
-        if w_info == [('', '', '', '', '', '', '')]:
-            return 'Error!'
 
         with open(path, 'w', encoding=UTF8) as fw:
             json.dump(w_info, fw, ensure_ascii=False, indent=4)
         return self.list_all_weapons.emit(w_info)
 
     def get_info_weapons(self, steamid):
-        url_pfile_inf = f'{GPS}{steamid}'
-        if (
-            requests.get(url_pfile_inf).json()['response']
-            ['players'][0][CVS] == 1
-        ):
-            return [('', '', '', '', '', '', '')]
+        start_time = time.time()
+        print('WEAPON GO')
+        tl_ks_ = 'total_kills_'
+        tl_ss_ = 'total_shots_'
+        tl_hs_ = 'total_hits_'
 
-        total_ksh_ak47 = [
-            self.find_key_by_value('total_kills_ak47', steamid),
-            self.find_key_by_value('total_shots_ak47', steamid),
-            self.find_key_by_value('total_hits_ak47', steamid)]
+        ak47 = (f'{tl_ks_}ak47', f'{tl_ss_}ak47', f'{tl_hs_}ak47')
+        total_ksh_ak47 = tuple(
+            self.get_wkey(item, steamid) for item in ak47)
 
-        total_ksh_aug = [
-            self.find_key_by_value('total_kills_aug', steamid),
-            self.find_key_by_value('total_shots_aug', steamid),
-            self.find_key_by_value('total_hits_aug', steamid)]
+        aug = (f'{tl_ks_}aug', f'{tl_ss_}aug', f'{tl_hs_}aug')
+        total_ksh_aug = tuple(
+            self.get_wkey(item, steamid) for item in aug)
 
-        total_ksh_awp = [
-            self.find_key_by_value('total_kills_awp', steamid),
-            self.find_key_by_value('total_shots_awp', steamid),
-            self.find_key_by_value('total_hits_awp', steamid)]
+        awp = (f'{tl_ks_}awp', f'{tl_ss_}awp', f'{tl_hs_}awp')
+        total_ksh_awp = tuple(
+            self.get_wkey(item, steamid) for item in awp)
 
-        total_ksh_awp = [
-            self.find_key_by_value('total_kills_awp', steamid),
-            self.find_key_by_value('total_shots_awp', steamid),
-            self.find_key_by_value('total_hits_awp', steamid)]
+        deagle = (f'{tl_ks_}deagle', f'{tl_ss_}deagle', f'{tl_hs_}deagle')
+        total_ksh_deagle = tuple(
+            self.get_wkey(item, steamid) for item in deagle)
 
-        total_ksh_deagle = [
-            self.find_key_by_value('total_kills_deagle', steamid),
-            self.find_key_by_value('total_shots_deagle', steamid),
-            self.find_key_by_value('total_hits_deagle', steamid)]
+        elite = (f'{tl_ks_}elite', f'{tl_ss_}elite', f'{tl_hs_}elite')
+        total_ksh_elite = tuple(
+            self.get_wkey(item, steamid) for item in elite)
 
-        total_ksh_elite = [
-            self.find_key_by_value('total_kills_elite', steamid),
-            self.find_key_by_value('total_shots_elite', steamid),
-            self.find_key_by_value('total_hits_elite', steamid)]
+        famas = (f'{tl_ks_}famas', f'{tl_ss_}famas', f'{tl_hs_}famas')
+        total_ksh_famas = tuple(
+            self.get_wkey(item, steamid) for item in famas)
 
-        total_ksh_famas = [
-            self.find_key_by_value('total_kills_famas', steamid),
-            self.find_key_by_value('total_shots_famas', steamid),
-            self.find_key_by_value('total_hits_famas', steamid)]
+        fiveseven = (
+            f'{tl_ks_}fiveseven',
+            f'{tl_ss_}fiveseven',
+            f'{tl_hs_}fiveseven')
+        total_ksh_fiveseven = tuple(
+            self.get_wkey(item, steamid) for item in fiveseven)
 
-        total_ksh_fiveseven = [
-            self.find_key_by_value('total_kills_fiveseven', steamid),
-            self.find_key_by_value('total_shots_fiveseven', steamid),
-            self.find_key_by_value('total_hits_fiveseven', steamid)]
+        g3sg1 = (f'{tl_ks_}g3sg1', f'{tl_ss_}g3sg1', f'{tl_hs_}g3sg1')
+        total_ksh_g3sg1 = tuple(
+            self.get_wkey(item, steamid) for item in g3sg1)
 
-        total_ksh_g3sg1 = [
-            self.find_key_by_value('total_kills_g3sg1', steamid),
-            self.find_key_by_value('total_shots_g3sg1', steamid),
-            self.find_key_by_value('total_hits_g3sg1', steamid)]
+        galilar = (
+            f'{tl_ks_}galilar', f'{tl_ss_}galilar', f'{tl_hs_}galilar')
+        total_ksh_galilar = tuple(
+            self.get_wkey(item, steamid) for item in galilar)
 
-        total_ksh_galilar = [
-            self.find_key_by_value('total_kills_galilar', steamid),
-            self.find_key_by_value('total_shots_galilar', steamid),
-            self.find_key_by_value('total_hits_galilar', steamid)]
+        glock = (f'{tl_ks_}glock', f'{tl_ss_}glock', f'{tl_hs_}glock')
+        total_ksh_glock = tuple(
+            self.get_wkey(item, steamid) for item in glock)
 
-        total_ksh_glock = [
-            self.find_key_by_value('total_kills_glock', steamid),
-            self.find_key_by_value('total_shots_glock', steamid),
-            self.find_key_by_value('total_hits_glock', steamid)]
+        m249 = (f'{tl_ks_}m249', f'{tl_ss_}m249', f'{tl_hs_}m249')
+        total_ksh_m249 = tuple(
+            self.get_wkey(item, steamid) for item in m249)
 
-        total_ksh_m249 = [
-            self.find_key_by_value('total_kills_m249', steamid),
-            self.find_key_by_value('total_shots_m249', steamid),
-            self.find_key_by_value('total_hits_m249', steamid)]
+        m4a1 = (f'{tl_ks_}m4a1', f'{tl_ss_}m4a1', f'{tl_hs_}m4a1')
+        total_ksh_m4a1 = tuple(
+            self.get_wkey(item, steamid) for item in m4a1)
 
-        total_ksh_m4a1 = [
-            self.find_key_by_value('total_kills_m4a1', steamid),
-            self.find_key_by_value('total_shots_m4a1', steamid),
-            self.find_key_by_value('total_hits_m4a1', steamid)]
+        mac10 = (f'{tl_ks_}mac10', f'{tl_ss_}mac10', f'{tl_hs_}mac10')
+        total_ksh_mac10 = tuple(
+            self.get_wkey(item, steamid) for item in mac10)
 
-        total_ksh_mac10 = [
-            self.find_key_by_value('total_kills_mac10', steamid),
-            self.find_key_by_value('total_shots_mac10', steamid),
-            self.find_key_by_value('total_hits_mac10', steamid)]
+        mag7 = (f'{tl_ks_}mag7', f'{tl_ss_}mag7', f'{tl_hs_}mag7')
+        total_ksh_mag7 = tuple(
+            self.get_wkey(item, steamid) for item in mag7)
 
-        total_ksh_mag7 = [
-            self.find_key_by_value('total_kills_mag7', steamid),
-            self.find_key_by_value('total_shots_mag7', steamid),
-            self.find_key_by_value('total_hits_mag7', steamid)]
+        mp7 = (f'{tl_ks_}mp7', f'{tl_ss_}mp7', f'{tl_hs_}mp7')
+        total_ksh_mp7 = tuple(
+            self.get_wkey(item, steamid) for item in mp7)
 
-        total_ksh_mp7 = [
-            self.find_key_by_value('total_kills_mp7', steamid),
-            self.find_key_by_value('total_shots_mp7', steamid),
-            self.find_key_by_value('total_hits_mp7', steamid)]
+        mp9 = (f'{tl_ks_}mp9', f'{tl_ss_}mp9', f'{tl_hs_}mp9')
+        total_ksh_mp9 = tuple(
+            self.get_wkey(item, steamid) for item in mp9)
 
-        total_ksh_mp9 = [
-            self.find_key_by_value('total_kills_mp9', steamid),
-            self.find_key_by_value('total_shots_mp9', steamid),
-            self.find_key_by_value('total_hits_mp9', steamid)]
+        negev = (f'{tl_ks_}negev', f'{tl_ss_}negev', f'{tl_hs_}negev')
+        total_ksh_negev = tuple(
+            self.get_wkey(item, steamid) for item in negev)
 
-        total_ksh_negev = [
-            self.find_key_by_value('total_kills_negev', steamid),
-            self.find_key_by_value('total_shots_negev', steamid),
-            self.find_key_by_value('total_hits_negev', steamid)]
+        nova = (f'{tl_ks_}nova', f'{tl_ss_}nova', f'{tl_hs_}nova')
+        total_ksh_nova = tuple(
+            self.get_wkey(item, steamid) for item in nova)
 
-        total_ksh_nova = [
-            self.find_key_by_value('total_kills_nova', steamid),
-            self.find_key_by_value('total_shots_nova', steamid),
-            self.find_key_by_value('total_hits_nova', steamid)]
+        hkp2000 = (
+            f'{tl_ks_}hkp2000', f'{tl_ss_}hkp2000', f'{tl_hs_}hkp2000')
+        total_ksh_hkp2000 = tuple(
+            self.get_wkey(item, steamid) for item in hkp2000)
 
-        total_ksh_hkp2000 = [
-            self.find_key_by_value('total_kills_hkp2000', steamid),
-            self.find_key_by_value('total_shots_hkp2000', steamid),
-            self.find_key_by_value('total_hits_hkp2000', steamid)]
+        p250 = (f'{tl_ks_}p250', f'{tl_ss_}p250', f'{tl_hs_}p250')
+        total_ksh_p250 = tuple(
+            self.get_wkey(item, steamid) for item in p250)
 
-        total_ksh_p250 = [
-            self.find_key_by_value('total_kills_p250', steamid),
-            self.find_key_by_value('total_shots_p250', steamid),
-            self.find_key_by_value('total_hits_p250', steamid)]
+        p90 = (f'{tl_ks_}p90', f'{tl_ss_}p90', f'{tl_hs_}p90')
+        total_ksh_p90 = tuple(
+            self.get_wkey(item, steamid) for item in p90)
 
-        total_ksh_p90 = [
-            self.find_key_by_value('total_kills_p90', steamid),
-            self.find_key_by_value('total_shots_p90', steamid),
-            self.find_key_by_value('total_hits_p90', steamid)]
+        bizon = (f'{tl_ks_}bizon', f'{tl_ss_}bizon', f'{tl_hs_}bizon')
+        total_ksh_bizon = tuple(
+            self.get_wkey(item, steamid) for item in bizon)
 
-        total_ksh_bizon = [
-            self.find_key_by_value('total_kills_bizon', steamid),
-            self.find_key_by_value('total_shots_bizon', steamid),
-            self.find_key_by_value('total_hits_bizon', steamid)]
+        sawedoff = (
+            f'{tl_ks_}sawedoff', f'{tl_ss_}sawedoff', f'{tl_hs_}sawedoff')
+        total_ksh_sawedoff = tuple(
+            self.get_wkey(item, steamid) for item in sawedoff)
 
-        total_ksh_sawedoff = [
-            self.find_key_by_value('total_kills_sawedoff', steamid),
-            self.find_key_by_value('total_shots_sawedoff', steamid),
-            self.find_key_by_value('total_hits_sawedoff', steamid)]
+        scar20 = (f'{tl_ks_}scar20', f'{tl_ss_}scar20', f'{tl_hs_}scar20')
+        total_ksh_scar20 = tuple(
+            self.get_wkey(item, steamid) for item in scar20)
 
-        total_ksh_scar20 = [
-            self.find_key_by_value('total_kills_scar20', steamid),
-            self.find_key_by_value('total_shots_scar20', steamid),
-            self.find_key_by_value('total_hits_scar20', steamid)]
+        sg556 = (f'{tl_ks_}sg556', f'{tl_ss_}sg556', f'{tl_hs_}sg556')
+        total_ksh_sg556 = tuple(
+            self.get_wkey(item, steamid) for item in sg556)
 
-        total_ksh_sg556 = [
-            self.find_key_by_value('total_kills_sg556', steamid),
-            self.find_key_by_value('total_shots_sg556', steamid),
-            self.find_key_by_value('total_hits_sg556', steamid)]
+        ssg08 = (f'{tl_ks_}ssg08', f'{tl_ss_}ssg08', f'{tl_hs_}ssg08')
+        total_ksh_ssg08 = tuple(
+            self.get_wkey(item, steamid) for item in ssg08)
 
-        total_ksh_ssg08 = [
-            self.find_key_by_value('total_kills_ssg08', steamid),
-            self.find_key_by_value('total_shots_ssg08', steamid),
-            self.find_key_by_value('total_hits_ssg08', steamid)]
+        tec9 = (f'{tl_ks_}tec9', f'{tl_ss_}tec9', f'{tl_hs_}tec9')
+        total_ksh_tec9 = tuple(
+            self.get_wkey(item, steamid) for item in tec9)
 
-        total_ksh_tec9 = [
-            self.find_key_by_value('total_kills_tec9', steamid),
-            self.find_key_by_value('total_shots_tec9', steamid),
-            self.find_key_by_value('total_hits_tec9', steamid)]
+        ump45 = (f'{tl_ks_}ump45', f'{tl_ss_}ump45', f'{tl_hs_}ump45')
+        total_ksh_ump45 = tuple(
+            self.get_wkey(item, steamid) for item in ump45)
 
-        total_ksh_ump45 = [
-            self.find_key_by_value('total_kills_ump45', steamid),
-            self.find_key_by_value('total_shots_ump45', steamid),
-            self.find_key_by_value('total_hits_ump45', steamid)]
-
-        total_ksh_xm1014 = [
-            self.find_key_by_value('total_kills_xm1014', steamid),
-            self.find_key_by_value('total_shots_xm1014', steamid),
-            self.find_key_by_value('total_hits_xm1014', steamid)]
+        xm1014 = (f'{tl_ks_}xm1014', f'{tl_ss_}xm1014', f'{tl_hs_}xm1014')
+        total_ksh_xm1014 = tuple(
+            self.get_wkey(item, steamid) for item in xm1014)
 
         total_summ = sum((
             total_ksh_ak47[0],
@@ -1417,7 +1379,7 @@ class CheckWeaponsThread(QtCore.QThread, MyWin, ProfileStatus):
             total_ksh_xm1014[0])
         )
 
-        date_weapons = [
+        date_weapons = (
             (
                 'AK-47',
                 str(round(
@@ -1702,31 +1664,29 @@ class CheckWeaponsThread(QtCore.QThread, MyWin, ProfileStatus):
                 str(total_ksh_xm1014[2]),
                 str(total_ksh_xm1014[1]),
                 str(round(total_ksh_xm1014[0] / total_summ * 100, 2)) + '%'
-            )]
+            ))
+        print('WEAPON END')
+        print("--- %s seconds ---" % (time.time() - start_time))
         return date_weapons
 
-    def find_key_by_value(self, finded, steamid):
-        url_statistic = f'{GUSFG}{steamid}'
+    def get_wkey(self, finded, steamid):
         get_weapons = (
             f'date/{steamid}/{steamid}'
             f'_all_statistic_{TODAY}.json')
-
-        if requests.get(url_statistic).status_code != 200:
-            return 'Error weapons stats is not 200'
 
         try:
             open(get_weapons, 'r', encoding=UTF8)
         except FileNotFoundError:
             self.resault.write_json(
-                requests.get(url_statistic).json(),
-                get_weapons
-            )
+                requests.get(f'{GUSFG}{steamid}').json(),
+                get_weapons)
 
-        statistic_file_json = self.resault.open_json(get_weapons)
-        finded_val: int = 0
-        for _ in statistic_file_json['playerstats']['stats']:
-            if _['name'] == finded:
-                finded_val = _['value']
+        wstats = self.resault.open_json(get_weapons)
+        finded_val = 0
+        for count, item in enumerate(wstats['playerstats']['stats']):
+            self.int_for_progressbar_w.emit(count, len(wstats))
+            if item['name'] == finded:
+                finded_val = item['value']
         return finded_val
 
 
@@ -1846,21 +1806,22 @@ class CheckFriendsThread(QtCore.QThread, MyWin, ProfileStatus):
         self.list_all_friends.emit(friend_info)
 
 
-class CheckVacThread(QtCore.QThread, MyWin, ProfileStatus):
+class CheckVacThread(QtCore.QThread, MyWin):
     list_all_users = QtCore.pyqtSignal(list)
     message_toolbar_bans = QtCore.pyqtSignal(str)
     int_for_progressbar_vac = QtCore.pyqtSignal(int, int)
 
     def __init__(self, parent=None):
         QtCore.QThread.__init__(self, parent)
-        self.running: bool = False
+        self.running = False
+        self.resault = ProfileStatus()
 
-    def run(self) -> None:
-        tmp_stmid: str = ''
-        all_users: list = []
-        vac_status: list = []
-        tmp_users: list = []
-        vacban_sts_all: list = []
+    def run(self):
+        tmp_stmid = ''
+        all_users = []
+        vac_status = []
+        tmp_users = []
+        vacban_sts_all = []
         self.running = True
         date_match_users = self.resault.open_json(
             ALL_S
@@ -1880,7 +1841,7 @@ class CheckVacThread(QtCore.QThread, MyWin, ProfileStatus):
                 all_users.append(line)
 
         self.resault = ProfileStatus()
-        val: int = 0
+        val = 0
         all_u = len(all_users)
         while self.running:
             tmp_stmid = all_users[val][0]
@@ -1908,7 +1869,9 @@ class CheckVacThread(QtCore.QThread, MyWin, ProfileStatus):
             date_ban = TODAY - timedelta(days=day)
             if (
                 str(all_users[val][1]) <= str(date_ban).split(' ')[0]
-            ) and vac_status[val]['players'][0]['VACBanned']:
+                and
+                vac_status[val]['players'][0]['VACBanned']
+            ):
                 tmp_users.append(
                     [
                         tmp_stmid,
