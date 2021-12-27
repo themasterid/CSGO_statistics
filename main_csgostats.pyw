@@ -333,17 +333,21 @@ class MyWin(QtWidgets.QMainWindow):
         # WEAPONS
         self.ui.pushButton_update_weapons.clicked.connect(
             self.on_start_weapons)
-        self.ui.comboBox_weapons.activated.connect(self.open_table_weapons)
+        self.ui.comboBox_weapons.currentIndexChanged.connect(
+            self.open_table_weapons)
         self.ui.comboBox_weapons.addItems(
             self.get_items_combobox('all_weapons'))
+        self.ui.comboBox_weapons.setCurrentIndex(0)
         self.check_weapons_thread.list_all_weapons.connect(
-            self.get_tables,
+            self.get_tables_weapons,
             QtCore.Qt.QueuedConnection)
 
         # FRIENDS
         self.ui.pushButton_update_friends.clicked.connect(
             self.on_start_friends)
-        self.ui.comboBox_friends.activated.connect(self.open_table_friends)
+        self.ui.comboBox_friends.currentIndexChanged.connect(
+            self.open_table_friends)
+
         self.ui.comboBox_friends.addItems(
             self.get_items_combobox('all_friends'))
         self.check_friends_thread.list_all_friends.connect(
@@ -353,17 +357,23 @@ class MyWin(QtWidgets.QMainWindow):
             self.listwidgetclicked)
 
         # MATCHES
-        self.ui.comboBox_matches.addItems(self.get_items_combobox_matches())
-        self.ui.comboBox_matches.activated.connect(self.get_info_match)
+        self.ui.comboBox_matches.setCurrentIndex(0)
+        self.ui.comboBox_matches.currentIndexChanged.connect(
+            self.get_info_match)
+        self.ui.comboBox_matches.addItems(
+            self.get_items_combobox_matches())
 
         # BANS
         self.ui.pushButton_update_bans_start.clicked.connect(
             self.on_start_vacs)
-        self.ui.pushButton_update_bans_stop.clicked.connect(self.on_stop_vacs)
-        self.ui.comboBox_bans.activated.connect(self.open_table_bans)
-        self.ui.comboBox_bans.addItems(self.get_items_combobox('all_bans'))
+        self.ui.pushButton_update_bans_stop.clicked.connect(
+            self.on_stop_vacs)
+        self.ui.comboBox_bans.currentIndexChanged.connect(
+            self.open_table_bans)
+        self.ui.comboBox_bans.addItems(
+            self.get_items_combobox('all_bans'))
         self.check_vac_thread.list_all_users.connect(
-            self.get_tables, QtCore.Qt.QueuedConnection)
+            self.get_tables_bans, QtCore.Qt.QueuedConnection)
         self.check_vac_thread.message_toolbar_bans.connect(
             self.on_change_check_vac, QtCore.Qt.QueuedConnection)
         self.check_vac_thread.int_for_progressbar_vac.connect(
@@ -401,10 +411,10 @@ class MyWin(QtWidgets.QMainWindow):
 
     # ! DONE !
     # * get items box for sort date
-    def get_items_combobox(self, string_w: str) -> List[str]:
+    def get_items_combobox(self, string_w):
         # ! STEAMID GLOBAL CONST!
-        path: str = f'date/{string_w}/{STEAMID}/'
-        only_f: list = sorted(
+        path = f'date/{string_w}/{STEAMID}/'
+        only_f = sorted(
             [f for f in listdir(path) if isfile(join(path, f))],
             reverse=True
         )
@@ -491,8 +501,21 @@ class MyWin(QtWidgets.QMainWindow):
         self.ui.tableWidget_friends.setGridStyle(1)
         self.ui.tableWidget_friends.resizeColumnsToContents()
 
-    def get_tables(self, list_s):
-        """Заносим данные в таблицу банов/оружия."""
+    def get_tables_weapons(self, list_s):
+        """Заносим данные в таблицу оружия."""
+        strings = 'all_weapons'
+        with open(
+            f'date/{strings}/{STEAMID}/{TODAY}.json',
+            'w', encoding=UTF8
+        ) as file_all:
+            json.dump(
+                list_s,
+                file_all,
+                ensure_ascii=False,
+                indent=4)
+
+    def get_tables_bans(self, list_s):
+        """Заносим данные в таблицу банов."""
         strings = 'all_bans'
         with open(
             f'date/{strings}/{STEAMID}/{TODAY}.json',
@@ -1305,7 +1328,7 @@ class CheckWeaponsThread(QtCore.QThread, MyWin):
             total_ksh_xm1014[0])
         )
 
-        date_weapons = (
+        return (
             (
                 'AK-47',
                 str(round(
@@ -1591,7 +1614,6 @@ class CheckWeaponsThread(QtCore.QThread, MyWin):
                 str(total_ksh_xm1014[1]),
                 str(round(total_ksh_xm1014[0] / total_summ * 100, 2)) + '%'
             ))
-        return date_weapons
 
     def get_wkey(self, finded, steamid):
         get_weapons = (
