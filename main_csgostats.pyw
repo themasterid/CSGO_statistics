@@ -1,11 +1,10 @@
 import os
 import sys
-import time
 import webbrowser
 from datetime import date, datetime, timedelta
 from os import listdir
 from os.path import isfile, join
-from typing import Any, List, Union
+from typing import List, Union
 
 import requests
 import simplejson as json
@@ -203,7 +202,7 @@ class ProfileStatus:
         file_bans = (
             f'date/{steamid}/{steamid}'
             f'_ban_status_{TODAY}.json')
-        path = os.path.join(f'date\\{steamid}')
+        path = os.path.join(f'date/{steamid}')
 
         try:
             os.mkdir(path)
