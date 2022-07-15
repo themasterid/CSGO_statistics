@@ -1,4 +1,4 @@
-# CSGO_statistics - просмотре статистики для игроков CS:GO. 
+# CSGO Статистика - просмотр статистики для игроков CS:GO.
 
 ## Стек:
 - Python 3.10.5
@@ -18,3 +18,52 @@
 К сожалению, c 2021.08.01 работа над проектом приостановлена, ввиду переноса функционала и дополнительных возможностей в Django 4.
 
 На данной стадии проект сырой, и не работоспособен в полной мере.
+
+### Установка
+
+Клонируем репозиторий:
+
+```bash
+git clone git@github.com:themasterid/CSGO_statistics.git
+```
+
+Переходим в проект:
+
+```bash
+cd CSGO_statistics
+```
+
+Создаем виртуальное окружение:
+
+```bash
+python -m venv venv
+```
+
+Активируем виртуальное окружение:
+
+windows:
+```bash
+source /venv/Scripts/activate
+```
+
+linux:
+```bash
+source /venv/bin/activate
+```
+
+Устанавливаем зависимости:
+
+```bash
+python -m pip install --upgrade pip
+pip install -r requirements.txt
+```
+
+Запускаем приложение:
+
+```bash
+python main_csgostats.pyw
+```
+
+Работаем, если получится :)
+
+Автор: [Клепиков Дмитрий](https://github.com/themasterid)
