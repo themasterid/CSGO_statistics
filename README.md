@@ -1,7 +1,7 @@
 # CSGO_statistics
 CSGO_statistics - просмотре статистики для игроков CS:GO. Сделан с применением:
 - PyQt5
-- Python 3.9
+- Python 3.10.5
 - json
 - Steam API
 
