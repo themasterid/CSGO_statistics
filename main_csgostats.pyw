@@ -1,3 +1,4 @@
+import contextlib
 import os
 import sys
 import webbrowser
@@ -16,6 +17,8 @@ from PyQt5.QtWidgets import QTableWidgetItem
 from res.codes import keys
 from res.mainwindows import Ui_MainWindow
 
+
+URL_STEAM = 'api.steampowered.com'
 TEXT_NOT_FOUND = '''
             Извините!\n
             При обработке вашего запроса произошла ошибка:\n
@@ -30,28 +33,28 @@ KEY_STEAMID = '99999999999999999;XXXXXXXXXXXXXXXXX'
 CVS = 'communityvisibilitystate'
 
 GPS = (
-    'https://api.steampowered.com/ISteamUser/'
+    f'https://{URL_STEAM}/ISteamUser/'
     f'GetPlayerSummaries/v2/?key={KEY}&steamids='
 )
 
 GSF = (
-    'http://api.steampowered.com/ISteamUser/GetFriendList/v0001/'
+    f'https://{URL_STEAM}/ISteamUser/GetFriendList/v0001/'
     f'?key={KEY}&steamid={STEAMID}&relationship=friend'
 )
 
 GUSFG = (
-    'https://api.steampowered.com/ISteamUserStats/'
+    f'https://{URL_STEAM}/ISteamUserStats/'
     'GetUserStatsForGame/v0002/'
     f'?appid=730&key={KEY}&steamid='
 )
 
 GPB = (
-    'https://api.steampowered.com/ISteamUser/'
+    f'https://{URL_STEAM}/ISteamUser/'
     f'GetPlayerBans/v1/?key={KEY}&steamids='
 )
 
 DATE_FMT = '%b-%d-%Y'
-# ! Снять комментари после завершения.
+# ! Снять комментарий после завершения.
 TODAY = date.today()
 # ! Если не успел :)
 # ! TODAY = date(2021, 11, 19)
@@ -130,10 +133,8 @@ class ProfileStatus:
         )
         path_ = os.path.join(DATE, steamid)
 
-        try:
+        with contextlib.suppress(FileExistsError):
             os.mkdir(path_)
-        except FileExistsError:
-            pass
 
         try:
             open(steam_profile, 'r')
@@ -205,10 +206,8 @@ class ProfileStatus:
             f'_ban_status_{TODAY}.json')
         path = os.path.join(f'date/{steamid}')
 
-        try:
+        with contextlib.suppress(FileExistsError):
             os.mkdir(path)
-        except FileExistsError:
-            pass
 
         try:
             open(
@@ -230,10 +229,8 @@ class ProfileStatus:
         parent_dir = f'date/{steamid}/'
         file_profile = f'date/{steamid}/{steamid}_profile_info_{TODAY}.json'
         path = os.path.join(parent_dir, directory)
-        try:
+        with contextlib.suppress(FileExistsError):
             os.mkdir(path)
-        except FileExistsError:
-            pass
 
         try:
             open(file_profile, 'r')
@@ -263,6 +260,8 @@ class ProfileStatus:
         img1 = profile_data_json['response']['players'][0]['avatar']
         img2 = profile_data_json['response']['players'][0]['avatarmedium']
         img3 = profile_data_json['response']['players'][0]['avatarfull']
+
+        print('IMG1111111111111111!', img1)
 
         if os.path.exists(
             f'date/{steamid}/{img1.split("/")[8]}'
@@ -504,6 +503,7 @@ class MyWin(QtWidgets.QMainWindow):
 
     def get_tables_weapons(self, list_s):
         """Заносим данные в таблицу оружия."""
+
         strings = 'all_weapons'
         with open(
             f'date/{strings}/{STEAMID}/{TODAY}.json',
@@ -517,6 +517,7 @@ class MyWin(QtWidgets.QMainWindow):
 
     def get_tables_bans(self, list_s):
         """Заносим данные в таблицу банов."""
+
         strings = 'all_bans'
         with open(
             f'date/{strings}/{STEAMID}/{TODAY}.json',
@@ -530,6 +531,7 @@ class MyWin(QtWidgets.QMainWindow):
 
     def get_tables_friends(self, list_s):
         """Заносим данные в таблицу друзей."""
+
         strings = 'all_friends'
         with open(
             f'date/{strings}/{STEAMID}/{TODAY}.json',
@@ -544,6 +546,7 @@ class MyWin(QtWidgets.QMainWindow):
     def open_table_bans(self):
         index_match = self.ui.comboBox_bans.currentIndex()
         self.ui.tableWidget_bans.clear()
+        print(STEAMID)
         all_users = self.result.open_json(
             f'date/all_bans/{STEAMID}/'
             f'{self.get_items_combobox("all_bans")[index_match]}'
@@ -557,11 +560,11 @@ class MyWin(QtWidgets.QMainWindow):
         self.ui.tableWidget_bans.setHorizontalHeaderLabels((
             'Стим ИД',
             'Имя',
-            ' Дата матча ',
-            'Бан в\nсообществе',
+            'Дата матча',
+            'Бан в\n сообществе',
             '  VAC статус  ',
             'Число\nVAC\nбанов',
-            '  Дата бана  ',
+            ' Дата бана',
             'Число\nигровых\nбанов',
             'Бан\nторговой')
         )
@@ -577,8 +580,8 @@ class MyWin(QtWidgets.QMainWindow):
                     QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled)
                 self.ui.tableWidget_bans.setItem(row, col, cellinfo)
 
-        self.ui.tableWidget_bans.setGridStyle(1)
-        self.ui.tableWidget_bans.resizeColumnsToContents()
+        # self.ui.tableWidget_bans.setGridStyle(1)
+        # self.ui.tableWidget_bans.resizeColumnsToContents()
 
     # ! Add thread GetInfoBanThread
     def get_info_match(self):
@@ -604,16 +607,17 @@ class MyWin(QtWidgets.QMainWindow):
         player_name_i = []
         vac_status = []
         imgs = []
+        img = None
         for val in range(10):
             self.ui.progressBar_bans.setMaximum(9)
             self.ui.progressBar_bans.setProperty('value', val)
             steamid_i.append(
                 date_match['team'][val]['steamid64'])
             result = self.result.get_profile_check(steamid_i[val])
-            img = result['response']['players'][0]['avatarfull'].split('/')[8]
+            # result['response']['players'][0]['avatarfull'].split('/')[8]
             imgs.append(img)
             name_i.append(result['response']['players'][0]['personaname'])
-            self.result.create_avatar(steamid_i[val])
+            # self.result.create_avatar(steamid_i[val])
             vac_status.append(
                 self.result.check_vac_banned(
                     steamid_i[val])['players'][0]['VACBanned'])
@@ -783,10 +787,11 @@ class MyWin(QtWidgets.QMainWindow):
 
     def get_info_profile(self, steamid):
         result = self.result.get_profile_check(steamid)
-        self.result.create_avatar(steamid)
+        # self.result.create_avatar(steamid)
         personastate = result['response']['players'][0]['personastate']
         communityvisibilitystate = result['response']['players'][0][CVS]
-        img = result['response']['players'][0]['avatarfull'].split('/')[8]
+        img = None
+        # result['response']['players'][0]['avatarfull'].split('/')[8]
         if communityvisibilitystate == 1:
             (self.ui.tabWidget.setTabEnabled(i, False) for i in range(1, 4))
             self.statusBar().showMessage(
@@ -977,7 +982,7 @@ class MyWin(QtWidgets.QMainWindow):
 
     def get_table_statistics(self, steamid):
         result = self.result.get_profile_check(steamid)
-        self.result.create_avatar(steamid)
+        # self.result.create_avatar(steamid)
         self.get_info_profile(steamid)
         profile_info = (
             f'date/{steamid}/{steamid}'
@@ -992,6 +997,8 @@ class MyWin(QtWidgets.QMainWindow):
             req = requests.get(f'{GPS}{steamid}').json()
             self.result.write_json(req, profile_info)
 
+        img = None
+
         if result['response']['players'][0][CVS] == 1:
             self.statusBar().showMessage(
                 'The profile is not visible to'
@@ -1004,7 +1011,7 @@ class MyWin(QtWidgets.QMainWindow):
 
         personastate = result['response']['players'][0]['personastate']
         communityvisibilitystate = result['response']['players'][0][CVS]
-        img = result['response']['players'][0]['avatarfull'].split('/')[8]
+        # result['response']['players'][0]['avatarfull'].split('/')[8]
         if communityvisibilitystate == 1:
             statis_profile = 'Закрытый'
             self.statusBar().showMessage(
@@ -1020,6 +1027,7 @@ class MyWin(QtWidgets.QMainWindow):
             )
             return NO_INFO_USERS
 
+        statis_profile = 'Закрытый'
         if communityvisibilitystate == 3:
             statis_profile = 'Открытый'
             self.statusBar().showMessage(
@@ -1035,11 +1043,10 @@ class MyWin(QtWidgets.QMainWindow):
                 7: " (Offline)"
             }
             online_status = status_p[personastate]
-
+        online_status = status_p[personastate]
         tta += (
             'SteamID - '
-            f'{result["response"]["players"][0]["steamid"]}\n'
-        )
+            f'{result["response"]["players"][0]["steamid"]}\n')
         tta += f'Статус профиля - {statis_profile}\n'
         tta += f'Статус Steam - {online_status}\n'
         tmp_name = result['response']['players'][0]['personaname']
@@ -1297,7 +1304,7 @@ class CheckWeaponsThread(QtCore.QThread, MyWin):
         total_ksh_xm1014 = tuple(
             self.get_wkey(item, steamid) for item in xm1014)
 
-        total_summ = sum((
+        total_sum = sum((
             total_ksh_ak47[0],
             total_ksh_aug[0],
             total_ksh_awp[0],
@@ -1341,7 +1348,7 @@ class CheckWeaponsThread(QtCore.QThread, MyWin):
                 str(total_ksh_ak47[0]),
                 str(total_ksh_ak47[2]),
                 str(total_ksh_ak47[1]),
-                str(round(total_ksh_ak47[0] / total_summ * 100, 2)) + '%'),
+                str(round(total_ksh_ak47[0] / total_sum * 100, 2)) + '%'),
             (
                 'AUG',
                 str(round(total_ksh_aug[2] / total_ksh_aug[1] * 100, 2)) + '%',
@@ -1349,7 +1356,7 @@ class CheckWeaponsThread(QtCore.QThread, MyWin):
                 str(total_ksh_aug[0]),
                 str(total_ksh_aug[2]),
                 str(total_ksh_aug[1]),
-                str(round(total_ksh_aug[0] / total_summ * 100, 2)) + '%'),
+                str(round(total_ksh_aug[0] / total_sum * 100, 2)) + '%'),
             (
                 'AWP',
                 str(round(total_ksh_awp[2] / total_ksh_awp[1] * 100, 2)) + '%',
@@ -1357,7 +1364,7 @@ class CheckWeaponsThread(QtCore.QThread, MyWin):
                 str(total_ksh_awp[0]),
                 str(total_ksh_awp[2]),
                 str(total_ksh_awp[1]),
-                str(round(total_ksh_awp[0] / total_summ * 100, 2)) + '%'),
+                str(round(total_ksh_awp[0] / total_sum * 100, 2)) + '%'),
             (
                 'Desert Eagle/R8',
                 str(round(total_ksh_deagle[2] /
@@ -1367,7 +1374,7 @@ class CheckWeaponsThread(QtCore.QThread, MyWin):
                 str(total_ksh_deagle[0]),
                 str(total_ksh_deagle[2]),
                 str(total_ksh_deagle[1]),
-                str(round(total_ksh_deagle[0] / total_summ * 100, 2)) + '%'),
+                str(round(total_ksh_deagle[0] / total_sum * 100, 2)) + '%'),
             (
                 'Dual Berettas',
                 str(
@@ -1378,7 +1385,7 @@ class CheckWeaponsThread(QtCore.QThread, MyWin):
                 str(total_ksh_elite[0]),
                 str(total_ksh_elite[2]),
                 str(total_ksh_elite[1]),
-                str(round(total_ksh_elite[0] / total_summ * 100, 2)) + '%'),
+                str(round(total_ksh_elite[0] / total_sum * 100, 2)) + '%'),
             (
                 'Famas',
                 str(
@@ -1392,7 +1399,7 @@ class CheckWeaponsThread(QtCore.QThread, MyWin):
                 str(total_ksh_famas[0]),
                 str(total_ksh_famas[2]),
                 str(total_ksh_famas[1]),
-                str(round(total_ksh_famas[0] / total_summ * 100, 2)) + '%'),
+                str(round(total_ksh_famas[0] / total_sum * 100, 2)) + '%'),
             (
                 'Five-SeveN',
                 str(round(
@@ -1406,7 +1413,7 @@ class CheckWeaponsThread(QtCore.QThread, MyWin):
                 str(total_ksh_fiveseven[1]),
                 str(
                     round(
-                     total_ksh_fiveseven[0] / total_summ * 100, 2
+                     total_ksh_fiveseven[0] / total_sum * 100, 2
                     )) + '%'),
             (
                 'G3SG1',
@@ -1421,7 +1428,7 @@ class CheckWeaponsThread(QtCore.QThread, MyWin):
                 str(total_ksh_g3sg1[0]),
                 str(total_ksh_g3sg1[2]),
                 str(total_ksh_g3sg1[1]),
-                str(round(total_ksh_g3sg1[0] / total_summ * 100, 2)) + '%'),
+                str(round(total_ksh_g3sg1[0] / total_sum * 100, 2)) + '%'),
             ('Galil AR',
                 str(round(total_ksh_galilar[2] /
                     total_ksh_galilar[1] * 100, 2)) + '%',
@@ -1430,7 +1437,7 @@ class CheckWeaponsThread(QtCore.QThread, MyWin):
                 str(total_ksh_galilar[0]),
                 str(total_ksh_galilar[2]),
                 str(total_ksh_galilar[1]),
-                str(round(total_ksh_galilar[0] / total_summ * 100, 2)) + '%'),
+                str(round(total_ksh_galilar[0] / total_sum * 100, 2)) + '%'),
             (
                 'Glock-18',
                 str(round(total_ksh_glock[2] /
@@ -1440,7 +1447,7 @@ class CheckWeaponsThread(QtCore.QThread, MyWin):
                 str(total_ksh_glock[0]),
                 str(total_ksh_glock[2]),
                 str(total_ksh_glock[1]),
-                str(round(total_ksh_glock[0] / total_summ * 100, 2)) + '%'),
+                str(round(total_ksh_glock[0] / total_sum * 100, 2)) + '%'),
             (
                 'M249',
                 str(round(total_ksh_m249[2] /
@@ -1450,7 +1457,7 @@ class CheckWeaponsThread(QtCore.QThread, MyWin):
                 str(total_ksh_m249[0]),
                 str(total_ksh_m249[2]),
                 str(total_ksh_m249[1]),
-                str(round(total_ksh_m249[0] / total_summ * 100, 2)) + '%'),
+                str(round(total_ksh_m249[0] / total_sum * 100, 2)) + '%'),
             (
                 'M4A4/M4A1-S',
                 str(round(total_ksh_m4a1[2] /
@@ -1460,7 +1467,7 @@ class CheckWeaponsThread(QtCore.QThread, MyWin):
                 str(total_ksh_m4a1[0]),
                 str(total_ksh_m4a1[2]),
                 str(total_ksh_m4a1[1]),
-                str(round(total_ksh_m4a1[0] / total_summ * 100, 2)) + '%'),
+                str(round(total_ksh_m4a1[0] / total_sum * 100, 2)) + '%'),
             (
                 'MAC-10',
                 str(round(total_ksh_mac10[2] /
@@ -1470,7 +1477,7 @@ class CheckWeaponsThread(QtCore.QThread, MyWin):
                 str(total_ksh_mac10[0]),
                 str(total_ksh_mac10[2]),
                 str(total_ksh_mac10[1]),
-                str(round(total_ksh_mac10[0] / total_summ * 100, 2)) + '%'),
+                str(round(total_ksh_mac10[0] / total_sum * 100, 2)) + '%'),
             ('MAG7',
                 str(round(total_ksh_mag7[2] /
                           total_ksh_mag7[1] * 100, 2)) + '%',
@@ -1479,21 +1486,21 @@ class CheckWeaponsThread(QtCore.QThread, MyWin):
                 str(total_ksh_mag7[0]),
                 str(total_ksh_mag7[2]),
                 str(total_ksh_mag7[1]),
-                str(round(total_ksh_mag7[0] / total_summ * 100, 2)) + '%'),
+                str(round(total_ksh_mag7[0] / total_sum * 100, 2)) + '%'),
             ('MP7/MP5-SD',
                 str(round(total_ksh_mp7[2] / total_ksh_mp7[1] * 100, 2)) + '%',
                 str(round(total_ksh_mp7[0] / total_ksh_mp7[2] * 100, 2)) + '%',
                 str(total_ksh_mp7[0]),
                 str(total_ksh_mp7[2]),
                 str(total_ksh_mp7[1]),
-                str(round(total_ksh_mp7[0] / total_summ * 100, 2)) + '%'),
+                str(round(total_ksh_mp7[0] / total_sum * 100, 2)) + '%'),
             ('MP9',
                 str(round(total_ksh_mp9[2] / total_ksh_mp9[1] * 100, 2)) + '%',
                 str(round(total_ksh_mp9[0] / total_ksh_mp9[2] * 100, 2)) + '%',
                 str(total_ksh_mp9[0]),
                 str(total_ksh_mp9[2]),
                 str(total_ksh_mp9[1]),
-                str(round(total_ksh_mp9[0] / total_summ * 100, 2)) + '%'),
+                str(round(total_ksh_mp9[0] / total_sum * 100, 2)) + '%'),
             ('Negev',
                 str(round(total_ksh_negev[2] /
                     total_ksh_negev[1] * 100, 2)) + '%',
@@ -1502,7 +1509,7 @@ class CheckWeaponsThread(QtCore.QThread, MyWin):
                 str(total_ksh_negev[0]),
                 str(total_ksh_negev[2]),
                 str(total_ksh_negev[1]),
-                str(round(total_ksh_negev[0] / total_summ * 100, 2)) + '%'),
+                str(round(total_ksh_negev[0] / total_sum * 100, 2)) + '%'),
             ('Nova',
                 str(round(total_ksh_nova[2] /
                           total_ksh_nova[1] * 100, 2)) + '%',
@@ -1511,7 +1518,7 @@ class CheckWeaponsThread(QtCore.QThread, MyWin):
                 str(total_ksh_nova[0]),
                 str(total_ksh_nova[2]),
                 str(total_ksh_nova[1]),
-                str(round(total_ksh_nova[0] / total_summ * 100, 2)) + '%'),
+                str(round(total_ksh_nova[0] / total_sum * 100, 2)) + '%'),
             ('P2000/USP-S',
                 str(round(total_ksh_hkp2000[2] /
                     total_ksh_hkp2000[1] * 100, 2)) + '%',
@@ -1520,7 +1527,7 @@ class CheckWeaponsThread(QtCore.QThread, MyWin):
                 str(total_ksh_hkp2000[0]),
                 str(total_ksh_hkp2000[2]),
                 str(total_ksh_hkp2000[1]),
-                str(round(total_ksh_hkp2000[0] / total_summ * 100, 2)) + '%'),
+                str(round(total_ksh_hkp2000[0] / total_sum * 100, 2)) + '%'),
             ('P250/CZ75-Auto',
                 str(round(total_ksh_p250[2] /
                           total_ksh_p250[1] * 100, 2)) + '%',
@@ -1529,14 +1536,14 @@ class CheckWeaponsThread(QtCore.QThread, MyWin):
                 str(total_ksh_p250[0]),
                 str(total_ksh_p250[2]),
                 str(total_ksh_p250[1]),
-                str(round(total_ksh_p250[0] / total_summ * 100, 2)) + '%'),
+                str(round(total_ksh_p250[0] / total_sum * 100, 2)) + '%'),
             ('P90',
                 str(round(total_ksh_p90[2] / total_ksh_p90[1] * 100, 2)) + '%',
                 str(round(total_ksh_p90[0] / total_ksh_p90[2] * 100, 2)) + '%',
                 str(total_ksh_p90[0]),
                 str(total_ksh_p90[2]),
                 str(total_ksh_p90[1]),
-                str(round(total_ksh_p90[0] / total_summ * 100, 2)) + '%'),
+                str(round(total_ksh_p90[0] / total_sum * 100, 2)) + '%'),
             ('PP-Bizon',
                 str(round(total_ksh_bizon[2] /
                     total_ksh_bizon[1] * 100, 2)) + '%',
@@ -1545,7 +1552,7 @@ class CheckWeaponsThread(QtCore.QThread, MyWin):
                 str(total_ksh_bizon[0]),
                 str(total_ksh_bizon[2]),
                 str(total_ksh_bizon[1]),
-                str(round(total_ksh_bizon[0] / total_summ * 100, 2)) + '%'),
+                str(round(total_ksh_bizon[0] / total_sum * 100, 2)) + '%'),
             ('Sawed-Off',
                 str(round(total_ksh_sawedoff[2] /
                     total_ksh_sawedoff[1] * 100, 2)) + '%',
@@ -1554,7 +1561,7 @@ class CheckWeaponsThread(QtCore.QThread, MyWin):
                 str(total_ksh_sawedoff[0]),
                 str(total_ksh_sawedoff[2]),
                 str(total_ksh_sawedoff[1]),
-                str(round(total_ksh_sawedoff[0] / total_summ * 100, 2)) + '%'),
+                str(round(total_ksh_sawedoff[0] / total_sum * 100, 2)) + '%'),
             ('SCAR-20',
                 str(round(total_ksh_scar20[2] /
                     total_ksh_scar20[1] * 100, 2)) + '%',
@@ -1563,7 +1570,7 @@ class CheckWeaponsThread(QtCore.QThread, MyWin):
                 str(total_ksh_scar20[0]),
                 str(total_ksh_scar20[2]),
                 str(total_ksh_scar20[1]),
-                str(round(total_ksh_scar20[0] / total_summ * 100, 2)) + '%'),
+                str(round(total_ksh_scar20[0] / total_sum * 100, 2)) + '%'),
             ('SG 553',
                 str(round(total_ksh_sg556[2] /
                     total_ksh_sg556[1] * 100, 2)) + '%',
@@ -1572,7 +1579,7 @@ class CheckWeaponsThread(QtCore.QThread, MyWin):
                 str(total_ksh_sg556[0]),
                 str(total_ksh_sg556[2]),
                 str(total_ksh_sg556[1]),
-                str(round(total_ksh_sg556[0] / total_summ * 100, 2)) + '%'),
+                str(round(total_ksh_sg556[0] / total_sum * 100, 2)) + '%'),
             (
                 'SSG 08',
                 str(round(total_ksh_ssg08[2] /
@@ -1582,7 +1589,7 @@ class CheckWeaponsThread(QtCore.QThread, MyWin):
                 str(total_ksh_ssg08[0]),
                 str(total_ksh_ssg08[2]),
                 str(total_ksh_ssg08[1]),
-                str(round(total_ksh_ssg08[0] / total_summ * 100, 2)) + '%'),
+                str(round(total_ksh_ssg08[0] / total_sum * 100, 2)) + '%'),
             ('TEC9',
                 str(round(total_ksh_tec9[2] /
                           total_ksh_tec9[1] * 100, 2)) + '%',
@@ -1591,7 +1598,7 @@ class CheckWeaponsThread(QtCore.QThread, MyWin):
                 str(total_ksh_tec9[0]),
                 str(total_ksh_tec9[2]),
                 str(total_ksh_tec9[1]),
-                str(round(total_ksh_tec9[0] / total_summ * 100, 2)) + '%'),
+                str(round(total_ksh_tec9[0] / total_sum * 100, 2)) + '%'),
             (
                 'UMP45',
                 str(round(total_ksh_ump45[2] /
@@ -1601,7 +1608,7 @@ class CheckWeaponsThread(QtCore.QThread, MyWin):
                 str(total_ksh_ump45[0]),
                 str(total_ksh_ump45[2]),
                 str(total_ksh_ump45[1]),
-                str(round(total_ksh_ump45[0] / total_summ * 100, 2)) + '%'),
+                str(round(total_ksh_ump45[0] / total_sum * 100, 2)) + '%'),
             (
                 'XM1014',
                 str(
@@ -1613,7 +1620,7 @@ class CheckWeaponsThread(QtCore.QThread, MyWin):
                 str(total_ksh_xm1014[0]),
                 str(total_ksh_xm1014[2]),
                 str(total_ksh_xm1014[1]),
-                str(round(total_ksh_xm1014[0] / total_summ * 100, 2)) + '%'
+                str(round(total_ksh_xm1014[0] / total_sum * 100, 2)) + '%'
             ))
 
     def get_wkey(self, finded, steamid):
@@ -1767,14 +1774,16 @@ class CheckVacThread(QtCore.QThread, MyWin):
         all_users = []
         tmp_users = []
         vacban_sts_all = []
-        URL_GPB = 'http://api.steampowered.com/ISteamUser/GetPlayerBans/v1/'
+        URL_GPB = f'http://{URL_STEAM}/ISteamUser/GetPlayerBans/v1/'
         id_resolve_url_bans = URL_GPB + '/?key={0}&steamids={1}'
 
-        URL_GPS = 'https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v2/'
+        URL_GPS = (
+            f'https://{URL_STEAM}/'
+            'ISteamUser/GetPlayerSummaries/v2/')
         id_resolve_url_users = URL_GPS + '/?key={0}&steamids={1}'
 
-        all_bans_file = f'date/all_bans/all_bans_{TODAY}.json'
-        all_users_file = f'date/all_users/all_users_{TODAY}.json'
+        # all_bans_file = f'date/all_bans/all_bans_{TODAY}.json'
+        # all_users_file = f'date/all_users/all_users_{TODAY}.json'
 
         api_key = keys['key']
         results_bans = ()
