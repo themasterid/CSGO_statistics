@@ -10,6 +10,6 @@ PyQt5==5.15.6
 PyQt5-Qt5==5.15.2
 PyQt5-sip==12.11.0
 requests==2.26.0
-setuptools==58.1.0
+setuptools==65.5.1
 simplejson==3.17.6
 urllib3==1.26.10
